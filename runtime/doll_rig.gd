@@ -6,4 +6,7 @@ extends Resource
 
 ## By library name ("" for the default library), e.g. an imported
 ## AnimationLibrary and one with clips made for the game.
-@export var animations: Dictionary[StringName, AnimationLibrary] = {}
+@export var animations: Dictionary[StringName, AnimationLibrary] = {}:
+	set(value):
+		animations = value
+		emit_changed()

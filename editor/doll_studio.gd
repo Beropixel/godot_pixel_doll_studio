@@ -2,10 +2,14 @@
 extends VBoxContainer
 ## The Doll Studio main screen: previews a DollSkin as a PixelDoll, in a
 ## palette and a style, facing right, left or both, and plays or scrubs its
-## rig's clips; Workbench opens the skin in the 3D editor (see
-## doll_workbench.gd). The style picked is edited in the side inspector and restyles
-## every doll using it. Skins, palettes and styles are found by scanning the
-## project's .tres files, again whenever the file system changes.
+## rig's clips (Space plays or pauses, ← and → step a pose, Home goes back to
+## the start); Workbench opens the skin in the 3D editor (see
+## doll_workbench.gd). The style picked is edited in the side inspector and
+## restyles every doll using it; the addon's own style is read-only, copy it
+## into a project style to tune it. Skins, palettes and styles are found by
+## scanning the project's .tres files, again whenever the file system
+## changes, and the preview follows edits to the skin shown. What's picked
+## is remembered per project.
 
 const DOLL_SCENE := preload("res://addons/doll_studio/runtime/pixel_doll.tscn")
 const DollWorkbench := preload("res://addons/doll_studio/editor/doll_workbench.gd")
@@ -13,14 +17,15 @@ const DollWorkbench := preload("res://addons/doll_studio/editor/doll_workbench.g
 const SKIN_CLASS := "DollSkin"
 const PALETTE_CLASS := "DollPalette"
 const STYLE_CLASS := "DollStyle"
+const ADDON_DIR := "res://addons/doll_studio/"
 const DEFAULT_STYLE_PATH := "res://addons/doll_studio/runtime/default_style.tres"
-## A doll's render, in its own pixels (see pixel_doll.tscn).
-const DOLL_SIZE := Vector2(96, 64)
 ## How see-through the onion skin's previous pose is.
 const ONION_ALPHA := 0.35
 const DEFAULT_BACKGROUND := Color("#4f6b46")
 ## The facing picker's items: which way each shown doll faces (flipped).
 const FACINGS: Array[Array] = [[false], [true], [false, true]]
+## Where the picks are remembered, in the editor's project metadata.
+const METADATA_SECTION := "doll_studio"
 
 ## .tres paths found by the scan, by script class.
 var _paths: Dictionary[String, PackedStringArray] = {}
@@ -28,6 +33,10 @@ var _dolls: Array[PixelDoll] = []
 ## One per doll, showing the pose a step before while paused.
 var _onions: Array[PixelDoll] = []
 var _playing := true
+## The skin shown, followed so its clips and notice stay current.
+var _watched_skin: DollSkin
+## A style just created, to pick once the scan finds it.
+var _pending_style_path := ""
 
 var _skin_picker := OptionButton.new()
 var _palette_picker := OptionButton.new()
@@ -36,6 +45,9 @@ var _clip_picker := OptionButton.new()
 var _style_picker := OptionButton.new()
 var _viewport := SubViewport.new()
 var _background := ColorRect.new()
+var _notice := Label.new()
+var _style_notice := VBoxContainer.new()
+var _style_dialog := EditorFileDialog.new()
 var _inspector: EditorInspector
 var _play_button := Button.new()
 var _loop_check := CheckBox.new()
@@ -48,6 +60,7 @@ var _background_picker := ColorPickerButton.new()
 
 func _ready() -> void:
 	_build_ui()
+	_restore_view()
 	EditorInterface.get_resource_filesystem().filesystem_changed.connect(_rescan)
 	_rescan()
 
@@ -65,9 +78,27 @@ func _process(_delta: float) -> void:
 	_time_label.text = "%.2f / %.2f s" % [_timeline.value, _timeline.max_value]
 
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_RESIZED and is_node_ready():
-		_layout_dolls()
+func _unhandled_key_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if not key or not key.pressed or not is_visible_in_tree():
+		return
+	var focus := get_viewport().gui_get_focus_owner()
+	if focus is LineEdit or focus is TextEdit:
+		return
+	match key.keycode:
+		KEY_SPACE:
+			if key.echo:
+				return
+			_on_play_pressed()
+		KEY_LEFT:
+			_on_step(-1)
+		KEY_RIGHT:
+			_on_step(1)
+		KEY_HOME:
+			_timeline.value = 0.0
+		_:
+			return
+	get_viewport().set_input_as_handled()
 
 
 func _build_ui() -> void:
@@ -106,27 +137,56 @@ func _build_ui() -> void:
 	_background.color = DEFAULT_BACKGROUND
 	_background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_viewport.add_child(_background)
+	_notice.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE, Control.PRESET_MODE_MINSIZE, 16)
+	_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var notice_settings := LabelSettings.new()
+	notice_settings.outline_size = 4
+	notice_settings.outline_color = Color.BLACK
+	_notice.label_settings = notice_settings
+	_viewport.add_child(_notice)
+
+	var side := VBoxContainer.new()
+	side.custom_minimum_size.x = 300.0
+	split.add_child(side)
+	var style_notice_text := Label.new()
+	style_notice_text.text = "This is the addon's built-in style: it's read-only, so updating the addon can't undo your changes. Copy it into a project style to tune it; every doll without a style of its own will use that one."
+	style_notice_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_style_notice.add_child(style_notice_text)
+	var create_style := Button.new()
+	create_style.text = "Create Project Style…"
+	create_style.pressed.connect(_style_dialog.popup_file_dialog)
+	_style_notice.add_child(create_style)
+	side.add_child(_style_notice)
 	_inspector = EditorInspector.create_default_inspector()
-	_inspector.custom_minimum_size.x = 300.0
-	split.add_child(_inspector)
+	_inspector.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	side.add_child(_inspector)
+	_style_dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
+	_style_dialog.access = EditorFileDialog.ACCESS_RESOURCES
+	_style_dialog.filters = PackedStringArray(["*.tres ; Doll Style"])
+	_style_dialog.current_file = "doll_style.tres"
+	_style_dialog.title = "Create Project Style"
+	_style_dialog.file_selected.connect(_create_project_style)
+	add_child(_style_dialog)
 
 	var transport := HBoxContainer.new()
 	add_child(transport)
 	_play_button.flat = true
-	_play_button.tooltip_text = "Play or pause the clip."
+	_play_button.tooltip_text = "Play or pause the clip (Space)."
 	_play_button.pressed.connect(_on_play_pressed)
 	transport.add_child(_play_button)
-	transport.add_child(_make_icon_button(&"PlayStartBackwards", "Previous pose", _on_step.bind(-1)))
+	transport.add_child(_make_icon_button(&"PlayStartBackwards", "Previous pose (←)", _on_step.bind(-1)))
 	_timeline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_timeline.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_timeline.step = 0.0
 	_timeline.value_changed.connect(_on_timeline_changed)
 	transport.add_child(_timeline)
-	transport.add_child(_make_icon_button(&"PlayStart", "Next pose", _on_step.bind(1)))
+	transport.add_child(_make_icon_button(&"PlayStart", "Next pose (→)", _on_step.bind(1)))
 	_time_label.custom_minimum_size.x = 110.0
 	transport.add_child(_time_label)
 	_loop_check.text = "Loop"
 	_loop_check.button_pressed = true
+	_loop_check.toggled.connect(_on_loop_toggled)
 	transport.add_child(_loop_check)
 	_onion_check.text = "Onion Skin"
 	_onion_check.tooltip_text = "While paused, show the pose a step before, see-through."
@@ -169,14 +229,36 @@ func _make_icon_button(icon_name: StringName, tooltip: String, on_pressed: Calla
 	return button
 
 
+## Puts the remembered view settings back (the pickers' picks come back with
+## the scan, see _rescan).
+func _restore_view() -> void:
+	_facing_picker.select(int(_recall("facing", 2)))
+	_zoom_spin.set_value_no_signal(float(_recall("zoom", 4.0)))
+	_background_picker.color = _recall("background", DEFAULT_BACKGROUND)
+	_background.color = _background_picker.color
+	_loop_check.set_pressed_no_signal(bool(_recall("loop", true)))
+	_onion_check.set_pressed_no_signal(bool(_recall("onion", false)))
+
+
+func _remember(key: String, value: Variant) -> void:
+	EditorInterface.get_editor_settings().set_project_metadata(METADATA_SECTION, key, value)
+
+
+func _recall(key: String, default: Variant) -> Variant:
+	return EditorInterface.get_editor_settings().get_project_metadata(METADATA_SECTION, key, default)
+
+
 ## Finds the project's skins, palettes and styles and refills the pickers,
-## keeping what each had selected when it's still there.
+## keeping what each had picked when it's still there (else what was
+## remembered).
 func _rescan() -> void:
 	_paths = {SKIN_CLASS: PackedStringArray(), PALETTE_CLASS: PackedStringArray(), STYLE_CLASS: PackedStringArray()}
 	_scan_dir(EditorInterface.get_resource_filesystem().get_filesystem())
-	_refill(_skin_picker, _paths[SKIN_CLASS], false)
-	_refill(_palette_picker, _paths[PALETTE_CLASS], true)
-	_refill(_style_picker, _paths[STYLE_CLASS], false, DEFAULT_STYLE_PATH)
+	_refill(_skin_picker, _paths[SKIN_CLASS], false, [_selected_path(_skin_picker), _recall("skin", "")])
+	_refill(_palette_picker, _paths[PALETTE_CLASS], true, [_selected_path(_palette_picker), _recall("palette", "")])
+	_refill(_style_picker, _paths[STYLE_CLASS], false, [_pending_style_path, _selected_path(_style_picker),
+			_recall("style", ""), ProjectSettings.get_setting(PixelDoll.STYLE_SETTING, ""), DEFAULT_STYLE_PATH])
+	_pending_style_path = ""
 	_rebuild_dolls()
 
 
@@ -206,8 +288,8 @@ func _read_script_class(path: String) -> String:
 	return header.substr(start, header.find("\"", start) - start)
 
 
-func _refill(picker: OptionButton, paths: PackedStringArray, with_none: bool, preferred := "") -> void:
-	var kept := _selected_path(picker)
+## Lists `paths` in `picker` and picks the first of `wanted` it has.
+func _refill(picker: OptionButton, paths: PackedStringArray, with_none: bool, wanted: Array) -> void:
 	picker.clear()
 	if with_none:
 		picker.add_item("None")
@@ -216,9 +298,9 @@ func _refill(picker: OptionButton, paths: PackedStringArray, with_none: bool, pr
 		picker.add_item(path.get_file().get_basename().capitalize())
 		picker.set_item_metadata(picker.item_count - 1, path)
 		picker.set_item_tooltip(picker.item_count - 1, path)
-	for wanted in [kept, preferred]:
+	for path: String in wanted:
 		for i in picker.item_count:
-			if wanted != "" and picker.get_item_metadata(i) == wanted:
+			if not path.is_empty() and picker.get_item_metadata(i) == path:
 				picker.select(i)
 				return
 
@@ -244,19 +326,23 @@ func _selected_clip() -> StringName:
 	return StringName(_clip_picker.get_item_text(_clip_picker.selected)) if _clip_picker.selected >= 0 else &""
 
 
-## Fills the clip picker from the skin's rig, keeping the clip shown when the
-## new rig has it too.
+## Fills the clip picker from the skin's rig, keeping the clip shown (else
+## the one remembered) when the rig has it.
 func _refill_clips(skin: DollSkin) -> void:
-	var kept := _selected_clip()
+	var wanted := [String(_selected_clip()), _recall("clip", "")]
 	_clip_picker.clear()
-	if not skin or not skin.rig:
-		return
-	for library_name in skin.rig.animations:
-		for animation_name in skin.rig.animations[library_name].get_animation_list():
-			_clip_picker.add_item(String(animation_name) if library_name.is_empty() else "%s/%s" % [library_name, animation_name])
-	for i in _clip_picker.item_count:
-		if _clip_picker.get_item_text(i) == kept:
-			_clip_picker.select(i)
+	if skin and skin.rig:
+		for library_name in skin.rig.animations:
+			var library := skin.rig.animations[library_name]
+			if not library:
+				continue
+			for animation_name in library.get_animation_list():
+				_clip_picker.add_item(String(animation_name) if library_name.is_empty() else "%s/%s" % [library_name, animation_name])
+	for clip: String in wanted:
+		for i in _clip_picker.item_count:
+			if not clip.is_empty() and _clip_picker.get_item_text(i) == clip:
+				_clip_picker.select(i)
+				return
 
 
 ## A doll (and its onion skin) per facing picked, in the skin, palette and
@@ -267,9 +353,14 @@ func _rebuild_dolls() -> void:
 	_dolls.clear()
 	_onions.clear()
 	var skin := _selected_skin()
+	_watch(skin)
 	_refill_clips(skin)
 	var style := _selected_style()
-	_inspector.edit(style)
+	var is_addon_style := _selected_path(_style_picker).begins_with(ADDON_DIR)
+	_style_notice.visible = is_addon_style
+	_inspector.visible = not is_addon_style
+	_inspector.edit(null if is_addon_style else style)
+	_update_notice(skin)
 	if not skin:
 		return
 	for flipped: bool in FACINGS[maxi(_facing_picker.selected, 0)]:
@@ -293,7 +384,31 @@ func _make_doll(skin: DollSkin, style: DollStyle, flipped: bool) -> PixelDoll:
 	doll.palette = _selected_resource(_palette_picker) as DollPalette
 	doll.flipped = flipped
 	_viewport.add_child(doll)
+	_viewport.move_child(_notice, -1)
 	return doll
+
+
+## Follows `skin`'s changes (the dolls rebuild themselves).
+func _watch(skin: DollSkin) -> void:
+	if _watched_skin and _watched_skin.changed.is_connected(_on_watched_skin_changed):
+		_watched_skin.changed.disconnect(_on_watched_skin_changed)
+	_watched_skin = skin
+	if skin:
+		skin.changed.connect(_on_watched_skin_changed)
+
+
+## Says what's missing when there's nothing to play.
+func _update_notice(skin: DollSkin) -> void:
+	if _paths.get(SKIN_CLASS, PackedStringArray()).is_empty():
+		_notice.text = "No DollSkin in the project yet. In the FileSystem dock, right-click a folder › Create New › Resource… › DollSkin, then set its character."
+	elif not skin:
+		_notice.text = ""
+	elif not skin.character:
+		_notice.text = "This skin has no character. Click Edit Skin and set one: a scene with a Skeleton3D, such as an imported .glb."
+	elif _clip_picker.item_count == 0:
+		_notice.text = "This skin has no clips to play. Click Edit Skin and give it a rig: a DollRig holding animation libraries for its skeleton."
+	else:
+		_notice.text = ""
 
 
 ## Spreads the dolls across the preview, centered, at the zoom picked.
@@ -353,20 +468,38 @@ func _update_onions() -> void:
 		onion.visible = _onion_check.button_pressed and not _playing
 
 
+## Copies the style picked to `path` and makes it the project's style.
+func _create_project_style(path: String) -> void:
+	var source := _selected_style()
+	var copy: DollStyle = source.duplicate() if source else DollStyle.new()
+	var error := ResourceSaver.save(copy, path)
+	if error != OK:
+		push_error("Doll Studio couldn't save %s: %s" % [path, error_string(error)])
+		return
+	ProjectSettings.set_setting(PixelDoll.STYLE_SETTING, path)
+	ProjectSettings.save()
+	_pending_style_path = path
+	EditorInterface.get_resource_filesystem().scan()
+
+
 func _on_skin_selected() -> void:
+	_remember("skin", _selected_path(_skin_picker))
 	_rebuild_dolls()
 
 
 func _on_palette_selected() -> void:
+	_remember("palette", _selected_path(_palette_picker))
 	for doll in _dolls + _onions:
 		doll.palette = _selected_resource(_palette_picker) as DollPalette
 
 
 func _on_facing_selected() -> void:
+	_remember("facing", _facing_picker.selected)
 	_rebuild_dolls()
 
 
 func _on_clip_selected() -> void:
+	_remember("clip", String(_selected_clip()))
 	_timeline.set_value_no_signal(0.0)
 	if _playing:
 		_play_from(0.0)
@@ -375,7 +508,13 @@ func _on_clip_selected() -> void:
 
 
 func _on_style_selected() -> void:
+	_remember("style", _selected_path(_style_picker))
 	_rebuild_dolls()
+
+
+func _on_watched_skin_changed() -> void:
+	_refill_clips(_watched_skin)
+	_update_notice(_watched_skin)
 
 
 func _on_edit_skin_pressed() -> void:
@@ -410,15 +549,22 @@ func _on_timeline_changed(time: float) -> void:
 	_pose_at(time)
 
 
-func _on_onion_toggled(_pressed: bool) -> void:
+func _on_loop_toggled(pressed: bool) -> void:
+	_remember("loop", pressed)
+
+
+func _on_onion_toggled(pressed: bool) -> void:
+	_remember("onion", pressed)
 	_update_onions()
 	if not _playing:
 		_pose_at(_timeline.value)
 
 
-func _on_zoom_changed(_zoom: float) -> void:
+func _on_zoom_changed(zoom: float) -> void:
+	_remember("zoom", zoom)
 	_layout_dolls()
 
 
 func _on_background_changed(color: Color) -> void:
+	_remember("background", color)
 	_background.color = color

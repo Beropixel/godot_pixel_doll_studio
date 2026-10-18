@@ -7,29 +7,41 @@ extends Node3D
 ## panel on the AnimationPlayer, which holds the skin's rig (imported .glb
 ## libraries are read-only). Saving the scene saves the skin and the rig's
 ## .tres libraries instead: what it builds, and the skin picked, never go
-## into the scene file. Open it on a skin with open().
+## into the scene file. It rebuilds when the skin is changed elsewhere (e.g.
+## in the Inspector). Open it on a skin with open().
 
 const WORKBENCH_SCENE := "res://addons/doll_studio/editor/doll_workbench.tscn"
 const CHARACTER_NODE := &"Character"
-const PLAYER_NODE := &"AnimationPlayer"
 
 ## The skin being worked on; picked here or by open(), never saved with the
 ## scene.
 @export var skin: DollSkin:
 	set(value):
+		if skin and skin.changed.is_connected(_on_skin_changed):
+			skin.changed.disconnect(_on_skin_changed)
 		skin = value
+		_skin_changed = false
+		if skin:
+			skin.changed.connect(_on_skin_changed)
 		if is_node_ready():
 			_rebuild()
 @export_tool_button("Save Skin and Clips", "Save") var save_action := _save_resources
 
 var _character: Node3D
-var _player: AnimationPlayer
 ## Each piece built, with the slot it fills and the piece scene's own root
 ## transform (DollSlot.offset goes on top of it).
 var _pieces: Array[Dictionary] = []
 var _skin_changed := false
+## Set while it writes an offset, so its own change doesn't rebuild it.
+var _writing_offset := false
+## The skin changed elsewhere (e.g. the Inspector): rebuild next frame.
+var _needs_rebuild := false
 ## The nodes it built and their owners, put back after a save.
 var _owners_before_save: Dictionary[Node, Node] = {}
+
+## Saved with the scene, so the Animation panel finds it when the editor
+## reopens the workbench; its rig libraries are added per skin, never saved.
+@onready var _player: AnimationPlayer = $AnimationPlayer
 
 
 ## Opens the workbench in the 3D editor on `skin`.
@@ -46,11 +58,15 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	if _needs_rebuild:
+		_rebuild()
 	for built in _pieces:
 		var piece: Node3D = built.piece
 		if is_instance_valid(piece) and piece.transform != built.last:
 			built.last = piece.transform
+			_writing_offset = true
 			(built.slot as DollSlot).offset = piece.transform * (built.base as Transform3D).affine_inverse()
+			_writing_offset = false
 			_skin_changed = true
 
 
@@ -68,18 +84,17 @@ func _validate_property(property: Dictionary) -> void:
 		property.usage = PROPERTY_USAGE_EDITOR
 
 
-## Builds the skin's character (unmirrored, facing +Z), its pieces and an
-## AnimationPlayer with its rig, owned by the edited scene so they show in
-## the Scene dock and the Animation panel.
+## Builds the skin's character (unmirrored, facing +Z) and its pieces,
+## owned by the edited scene so they show in the Scene dock, and gives the
+## AnimationPlayer its rig.
 func _rebuild() -> void:
-	for node: Node in [_character, _player]:
-		if is_instance_valid(node):
-			remove_child(node)
-			node.queue_free()
+	_needs_rebuild = false
+	if is_instance_valid(_character):
+		remove_child(_character)
+		_character.queue_free()
 	_character = null
-	_player = null
 	_pieces.clear()
-	_skin_changed = false
+	_clear_libraries()
 	if not skin or not skin.character:
 		return
 	var scene_root := _scene_root()
@@ -96,14 +111,7 @@ func _rebuild() -> void:
 	var skeleton := _character.find_child("Skeleton3D", true, false) as Skeleton3D
 	for i in skin.slots.size():
 		_add_piece(skeleton, skin.slots[i], i, scene_root)
-	_player = AnimationPlayer.new()
-	_player.name = PLAYER_NODE
-	add_child(_player)
-	_player.root_node = _player.get_path_to(_character)
-	if skin.rig:
-		for library_name in skin.rig.animations:
-			_player.add_animation_library(library_name, skin.rig.animations[library_name])
-	_own(_player, scene_root)
+	_add_libraries()
 
 
 func _add_piece(skeleton: Skeleton3D, slot: DollSlot, index: int, scene_root: Node) -> void:
@@ -137,17 +145,40 @@ func _save_resources() -> void:
 				ResourceSaver.save(library)
 
 
-## Unowns what it built, so the scene file keeps only the workbench itself.
+func _on_skin_changed() -> void:
+	if _writing_offset:
+		return
+	_skin_changed = true
+	_needs_rebuild = true
+
+
+## The skin's rig on the AnimationPlayer, which plays on its character.
+func _add_libraries() -> void:
+	if not skin or not skin.rig or not is_instance_valid(_character):
+		return
+	for library_name in skin.rig.animations:
+		_player.add_animation_library(library_name, skin.rig.animations[library_name])
+	_player.active = true
+
+
+func _clear_libraries() -> void:
+	_player.active = false
+	for library_name in _player.get_animation_library_list():
+		_player.remove_animation_library(library_name)
+
+
+## Unowns what it built and takes the rig off the AnimationPlayer, so the
+## scene file keeps only the workbench and its empty AnimationPlayer.
 func _hide_from_save() -> void:
 	_owners_before_save.clear()
 	var scene_root := _scene_root()
 	if scene_root and is_instance_valid(_character):
 		scene_root.set_editable_instance(_character, false)
-	for node: Node in [_character, _player]:
-		if is_instance_valid(node):
-			_collect_owned(node, scene_root)
+	if is_instance_valid(_character):
+		_collect_owned(_character, scene_root)
 	for node in _owners_before_save:
 		node.owner = null
+	_clear_libraries()
 
 
 func _restore_after_save() -> void:
@@ -158,6 +189,7 @@ func _restore_after_save() -> void:
 	var scene_root := _scene_root()
 	if scene_root and is_instance_valid(_character):
 		scene_root.set_editable_instance(_character, true)
+	_add_libraries()
 
 
 ## Only the nodes it owns to the scene: an instanced model keeps its own.

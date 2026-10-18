@@ -4,3 +4,7 @@
 
 [node name="DollWorkbench" type="Node3D"]
 script = ExtResource("1_workbench")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+active = false
+root_node = NodePath("../Character")

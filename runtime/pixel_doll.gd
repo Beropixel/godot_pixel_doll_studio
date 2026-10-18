@@ -10,10 +10,14 @@ extends Sprite2D
 ## (see DollRig) in steps, re-rendering only on a new pose (see
 ## DollStyle.frames_per_second). A Sprite2D, so its owner shakes, flips and
 ## tints it like any sprite; an AnimationPlayer outside can start its clips
-## through an animation track on Viewport/AnimationPlayer.
+## through an animation track on Viewport/AnimationPlayer. It rebuilds when
+## its skin changes (see DollSkin), once it's visible.
 
 const TOON_SHADER := preload("res://addons/doll_studio/runtime/shaders/toon.gdshader")
 const DEFAULT_STYLE := preload("res://addons/doll_studio/runtime/default_style.tres")
+## Project setting: the .tres of the style dolls without one use (see
+## project_style()).
+const STYLE_SETTING := "doll_studio/default_style"
 ## The skin's character, where its AnimationPlayer's root_node points.
 const CHARACTER_NODE := &"Character"
 ## How far the camera stands back from what it looks at.
@@ -23,15 +27,18 @@ const CAMERA_DISTANCE := 10.0
 ## shared by every doll that matches.
 static var _materials: Dictionary[String, ShaderMaterial] = {}
 
-@export var style: DollStyle = DEFAULT_STYLE:
+## How it's drawn; without one, the project's style (see project_style()).
+@export var style: DollStyle:
 	set(value):
-		_disconnect_changed(style)
-		style = value if value else DEFAULT_STYLE
-		style.changed.connect(_apply_style)
-		_apply_style()
+		style = value
+		_use_style(value if value else project_style())
 @export var skin: DollSkin:
 	set(value):
+		if skin and skin.changed.is_connected(_on_skin_changed):
+			skin.changed.disconnect(_on_skin_changed)
 		skin = value
+		if skin:
+			skin.changed.connect(_on_skin_changed)
 		if is_node_ready():
 			_build()
 ## Faces left instead of right: the render is mirrored, and so is the light,
@@ -52,8 +59,12 @@ static var _materials: Dictionary[String, ShaderMaterial] = {}
 		_apply_materials()
 
 var _character: Node3D
+## The style in effect: `style`, else the project's.
+var _style: DollStyle
 ## Time since the last pose shown.
 var _step_time := 0.0
+## Its skin changed: rebuild once it's visible (see _process).
+var _needs_build := false
 
 ## Plays its clips, in steps (see _process).
 @onready var animation_player: AnimationPlayer = $Viewport/AnimationPlayer
@@ -62,18 +73,33 @@ var _step_time := 0.0
 @onready var _inner_lines: MeshInstance3D = $Viewport/Camera3D/InnerLines
 
 
+## The style for dolls given none: the .tres named by the doll_studio/
+## default_style project setting, else the addon's default_style.tres.
+static func project_style() -> DollStyle:
+	var path: String = ProjectSettings.get_setting(STYLE_SETTING, "")
+	if not path.is_empty() and ResourceLoader.exists(path):
+		var project_wide := load(path) as DollStyle
+		if project_wide:
+			return project_wide
+	return DEFAULT_STYLE
+
+
 func _ready() -> void:
-	if not style.changed.is_connected(_apply_style):
-		style.changed.connect(_apply_style)
+	if not _style:
+		_use_style(project_style())
 	_build()
 	_apply_facing()
 
 
 func _process(delta: float) -> void:
-	if not animation_player.is_playing() or not is_visible_in_tree():
+	if not is_visible_in_tree():
+		return
+	if _needs_build:
+		_build()
+	if not animation_player.is_playing():
 		return
 	_step_time += delta
-	var step: float = 1.0 / style.frames_per_second
+	var step: float = 1.0 / _style.frames_per_second
 	if _step_time < step:
 		return
 	var steps := floorf(_step_time / step)
@@ -96,6 +122,7 @@ func pose(clip: StringName, time: float) -> void:
 ## Swaps in the skin's character, with the pieces in its slots and the clips
 ## of its rig, keeping the clip it was playing.
 func _build() -> void:
+	_needs_build = false
 	var clip := animation_player.current_animation
 	var position_in_clip := animation_player.current_animation_position if clip else 0.0
 	_apply_rig()
@@ -153,22 +180,22 @@ func _apply_facing() -> void:
 	_apply_materials()
 
 
-## Turns the character, frames it (feet style.feet_offset px under the
+## Turns the character, frames it (feet the style's feet_offset px under the
 ## center) and restyles its surfaces.
 func _apply_style() -> void:
 	if not is_node_ready():
 		return
 	if _character:
-		_character.rotation = Vector3(0.0, deg_to_rad(90.0 - style.turn_degrees), 0.0)
-	var pitch := deg_to_rad(style.pitch_degrees)
-	_camera.size = style.camera_size
+		_character.rotation = Vector3(0.0, deg_to_rad(90.0 - _style.turn_degrees), 0.0)
+	var pitch := deg_to_rad(_style.pitch_degrees)
+	_camera.size = _style.camera_size
 	# A point dh above the feet shows dh * cos(pitch) higher on screen.
-	var center_height: float = style.feet_offset * style.camera_size / _viewport.size.y / cos(pitch)
+	var center_height: float = _style.feet_offset * _style.camera_size / _viewport.size.y / cos(pitch)
 	_camera.transform = Transform3D(Basis.from_euler(Vector3(-pitch, 0.0, 0.0)), Vector3(0.0, center_height, 0.0)) \
 			.translated_local(Vector3(0.0, 0.0, CAMERA_DISTANCE))
 	var lines := (_inner_lines.mesh as QuadMesh).material as ShaderMaterial
-	lines.set_shader_parameter(&"depth_threshold", style.inner_line_threshold)
-	lines.set_shader_parameter(&"line_brightness", style.inner_line_brightness)
+	lines.set_shader_parameter(&"depth_threshold", _style.inner_line_threshold)
+	lines.set_shader_parameter(&"line_brightness", _style.inner_line_brightness)
 	_apply_materials()
 
 
@@ -187,7 +214,7 @@ func _apply_materials() -> void:
 ## A toon version of `source`, its texture and color (shared by every
 ## instance of its model or piece).
 func _get_material(source: BaseMaterial3D, recolored: bool) -> ShaderMaterial:
-	var key := "%d:%d:%d:%d:%d:%d" % [style.get_instance_id(), skin.get_instance_id(),
+	var key := "%d:%d:%d:%d:%d:%d" % [_style.get_instance_id(), skin.get_instance_id(),
 			source.get_instance_id() if source else 0, palette.get_instance_id() if recolored else 0,
 			int(flipped), int(recolored)]
 	var toon: ShaderMaterial = _materials.get(key)
@@ -195,18 +222,18 @@ func _get_material(source: BaseMaterial3D, recolored: bool) -> ShaderMaterial:
 		toon = ShaderMaterial.new()
 		toon.shader = TOON_SHADER
 		_materials[key] = toon
-	var light: Vector3 = style.light_direction
+	var light: Vector3 = _style.light_direction
 	if flipped:
 		light.x = -light.x
 	toon.set_shader_parameter(&"albedo_texture", source.albedo_texture if source else null)
 	toon.set_shader_parameter(&"albedo_color", source.albedo_color if source else Color.WHITE)
 	toon.set_shader_parameter(&"light_direction", light)
-	toon.set_shader_parameter(&"light_bands", style.light_bands)
-	toon.set_shader_parameter(&"shadow_brightness", style.shadow_brightness)
-	toon.set_shader_parameter(&"highlight_brightness", style.highlight_brightness)
-	toon.set_shader_parameter(&"shadow_tint", style.shadow_tint)
-	toon.set_shader_parameter(&"highlight_tint", style.highlight_tint)
-	toon.set_shader_parameter(&"albedo_steps", style.albedo_steps)
+	toon.set_shader_parameter(&"light_bands", _style.light_bands)
+	toon.set_shader_parameter(&"shadow_brightness", _style.shadow_brightness)
+	toon.set_shader_parameter(&"highlight_brightness", _style.highlight_brightness)
+	toon.set_shader_parameter(&"shadow_tint", _style.shadow_tint)
+	toon.set_shader_parameter(&"highlight_tint", _style.highlight_tint)
+	toon.set_shader_parameter(&"albedo_steps", _style.albedo_steps)
 	toon.set_shader_parameter(&"recolored", recolored)
 	if recolored:
 		toon.set_shader_parameter(&"recolor_key", skin.recolor_key)
@@ -216,9 +243,20 @@ func _get_material(source: BaseMaterial3D, recolored: bool) -> ShaderMaterial:
 	return toon
 
 
+func _use_style(new_style: DollStyle) -> void:
+	_disconnect_changed(_style)
+	_style = new_style
+	_style.changed.connect(_apply_style)
+	_apply_style()
+
+
 func _request_render() -> void:
 	if is_node_ready():
 		_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+
+
+func _on_skin_changed() -> void:
+	_needs_build = true
 
 
 func _disconnect_changed(resource: Resource) -> void:

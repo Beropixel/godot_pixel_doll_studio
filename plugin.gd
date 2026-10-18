@@ -7,12 +7,14 @@ extends EditorPlugin
 
 const DollStudio := preload("res://addons/doll_studio/editor/doll_studio.gd")
 const SkinInspector := preload("res://addons/doll_studio/editor/skin_inspector.gd")
+const STYLE_SETTING := PixelDoll.STYLE_SETTING
 
 var _studio: DollStudio
 var _skin_inspector: SkinInspector
 
 
 func _enter_tree() -> void:
+	_register_settings()
 	_studio = DollStudio.new()
 	_studio.name = "DollStudio"
 	_studio.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -46,3 +48,18 @@ func _get_plugin_name() -> String:
 
 func _get_plugin_icon() -> Texture2D:
 	return EditorInterface.get_editor_theme().get_icon(&"Skeleton3D", &"EditorIcons")
+
+
+## Project Settings › Doll Studio › Default Style: the .tres dolls without a
+## style use (see PixelDoll.project_style()).
+func _register_settings() -> void:
+	if not ProjectSettings.has_setting(STYLE_SETTING):
+		ProjectSettings.set_setting(STYLE_SETTING, "")
+	ProjectSettings.set_initial_value(STYLE_SETTING, "")
+	ProjectSettings.add_property_info({
+		"name": STYLE_SETTING,
+		"type": TYPE_STRING,
+		"hint": PROPERTY_HINT_FILE,
+		"hint_string": "*.tres",
+	})
+	ProjectSettings.set_as_basic(STYLE_SETTING, true)

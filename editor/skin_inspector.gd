@@ -2,10 +2,14 @@
 extends EditorInspectorPlugin
 ## Inspector extras for DollSkin and DollSlot: a skin opens with its doll
 ## playing its idle clip and a button to fit it on the workbench (see
-## doll_workbench.gd); a slot's `bone` is picked from the skin's skeleton
+## doll_workbench.gd), and its mesh lists are checklists of its meshes (see
+## mesh_checklist.gd); a slot's `bone` is picked from the skin's skeleton
 ## (see bone_picker.gd).
 
 const BonePicker := preload("res://addons/doll_studio/editor/bone_picker.gd")
+const MeshChecklist := preload("res://addons/doll_studio/editor/mesh_checklist.gd")
+## The DollSkin properties shown as mesh checklists.
+const MESH_LISTS: Array[String] = ["hidden_meshes", "recolored_meshes"]
 const DollWorkbench := preload("res://addons/doll_studio/editor/doll_workbench.gd")
 const DOLL_SCENE := preload("res://addons/doll_studio/runtime/pixel_doll.tscn")
 const THUMBNAIL_ZOOM := 2
@@ -35,6 +39,9 @@ func _parse_property(object: Object, _type: Variant.Type, name: String, _hint_ty
 		_hint_string: String, _usage_flags: int, _wide: bool) -> bool:
 	if object is DollSlot and name == "bone":
 		add_property_editor(name, BonePicker.new())
+		return true
+	if object is DollSkin and name in MESH_LISTS:
+		add_property_editor(name, MeshChecklist.new())
 		return true
 	return false
 
