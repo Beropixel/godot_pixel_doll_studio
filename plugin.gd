@@ -1,12 +1,15 @@
 @tool
 extends EditorPlugin
 ## Doll Studio's editor side: the "Doll Studio" main screen next to 2D, 3D
-## and Script (see editor/doll_studio.gd). The runtime (PixelDoll and its
-## resources) needs nothing registered here: its class_names are global.
+## and Script (see editor/doll_studio.gd), and the DollSkin/DollSlot
+## inspector extras (see editor/skin_inspector.gd). The runtime (PixelDoll and
+## its resources) needs nothing registered here: its class_names are global.
 
 const DollStudio := preload("res://addons/doll_studio/editor/doll_studio.gd")
+const SkinInspector := preload("res://addons/doll_studio/editor/skin_inspector.gd")
 
 var _studio: DollStudio
+var _skin_inspector: SkinInspector
 
 
 func _enter_tree() -> void:
@@ -15,9 +18,14 @@ func _enter_tree() -> void:
 	_studio.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	EditorInterface.get_editor_main_screen().add_child(_studio)
 	_studio.hide()
+	_skin_inspector = SkinInspector.new()
+	add_inspector_plugin(_skin_inspector)
 
 
 func _exit_tree() -> void:
+	if _skin_inspector:
+		remove_inspector_plugin(_skin_inspector)
+		_skin_inspector = null
 	if _studio:
 		_studio.queue_free()
 		_studio = null

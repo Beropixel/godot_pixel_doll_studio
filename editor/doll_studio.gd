@@ -2,11 +2,13 @@
 extends VBoxContainer
 ## The Doll Studio main screen: previews a DollSkin as a PixelDoll, in a
 ## palette and a style, facing right, left or both, and plays or scrubs its
-## rig's clips. The style picked is edited in the side inspector and restyles
+## rig's clips; Workbench opens the skin in the 3D editor (see
+## doll_workbench.gd). The style picked is edited in the side inspector and restyles
 ## every doll using it. Skins, palettes and styles are found by scanning the
 ## project's .tres files, again whenever the file system changes.
 
 const DOLL_SCENE := preload("res://addons/doll_studio/runtime/pixel_doll.tscn")
+const DollWorkbench := preload("res://addons/doll_studio/editor/doll_workbench.gd")
 ## Script classes the scan collects, by the .tres header's script_class.
 const SKIN_CLASS := "DollSkin"
 const PALETTE_CLASS := "DollPalette"
@@ -77,6 +79,11 @@ func _build_ui() -> void:
 	edit_skin.tooltip_text = "Open the skin in the Inspector."
 	edit_skin.pressed.connect(_on_edit_skin_pressed)
 	toolbar.add_child(edit_skin)
+	var workbench := Button.new()
+	workbench.text = "Workbench"
+	workbench.tooltip_text = "Fit the skin's pieces and make clips in the 3D editor."
+	workbench.pressed.connect(_on_workbench_pressed)
+	toolbar.add_child(workbench)
 	_add_labeled(toolbar, "Palette", _palette_picker, _on_palette_selected)
 	_add_labeled(toolbar, "Facing", _facing_picker, _on_facing_selected)
 	for facing_name in ["Right", "Left", "Both"]:
@@ -375,6 +382,12 @@ func _on_edit_skin_pressed() -> void:
 	var skin := _selected_skin()
 	if skin:
 		EditorInterface.edit_resource(skin)
+
+
+func _on_workbench_pressed() -> void:
+	var skin := _selected_skin()
+	if skin:
+		DollWorkbench.open(skin)
 
 
 func _on_play_pressed() -> void:
