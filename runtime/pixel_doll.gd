@@ -11,7 +11,8 @@ extends Sprite2D
 ## DollStyle.frames_per_second). A Sprite2D, so its owner shakes, flips and
 ## tints it like any sprite; an AnimationPlayer outside can start its clips
 ## through an animation track on Viewport/AnimationPlayer. It rebuilds when
-## its skin changes (see DollSkin), once it's visible.
+## its skin changes (see DollSkin), once it's visible; when only slot offsets
+## changed, it just moves the pieces.
 
 const TOON_SHADER := preload("res://addons/doll_studio/runtime/shaders/toon.gdshader")
 const DEFAULT_STYLE := preload("res://addons/doll_studio/runtime/default_style.tres")
@@ -59,6 +60,11 @@ static var _materials: Dictionary[String, ShaderMaterial] = {}
 		_apply_materials()
 
 var _character: Node3D
+var _skeleton: Skeleton3D
+## Each piece held, with its slot and the piece scene's own root transform.
+var _pieces: Array[Dictionary] = []
+## What the character was built from (see _skin_signature()).
+var _built_signature := ""
 ## The style in effect: `style`, else the project's.
 var _style: DollStyle
 ## Time since the last pose shown.
@@ -119,10 +125,26 @@ func pose(clip: StringName, time: float) -> void:
 	_request_render()
 
 
+## Takes `source`'s current bone poses, e.g. a skeleton being posed in the
+## editor, and shows them. Stop its own clips first, or they overwrite the
+## pose. The skeletons must share a rig (same bones, same order).
+func match_pose(source: Skeleton3D) -> void:
+	if not _skeleton or not source or source.get_bone_count() != _skeleton.get_bone_count():
+		return
+	for bone in source.get_bone_count():
+		_skeleton.set_bone_pose_position(bone, source.get_bone_pose_position(bone))
+		_skeleton.set_bone_pose_rotation(bone, source.get_bone_pose_rotation(bone))
+		_skeleton.set_bone_pose_scale(bone, source.get_bone_pose_scale(bone))
+	_request_render()
+
+
 ## Swaps in the skin's character, with the pieces in its slots and the clips
 ## of its rig, keeping the clip it was playing.
 func _build() -> void:
 	_needs_build = false
+	_built_signature = _skin_signature()
+	_pieces.clear()
+	_skeleton = null
 	var clip := animation_player.current_animation
 	var position_in_clip := animation_player.current_animation_position if clip else 0.0
 	_apply_rig()
@@ -137,9 +159,9 @@ func _build() -> void:
 		if skin.mirrored:
 			_character.scale.x = -1.0
 		_viewport.add_child(_character)
-		var skeleton := _character.find_child("Skeleton3D", true, false) as Skeleton3D
+		_skeleton = _character.find_child("Skeleton3D", true, false) as Skeleton3D
 		for slot in skin.slots:
-			_hold(skeleton, slot)
+			_hold(_skeleton, slot)
 		for mesh_name in skin.hidden_meshes:
 			var hidden_mesh := _character.find_child(mesh_name, true, false) as Node3D
 			if hidden_mesh:
@@ -171,8 +193,10 @@ func _hold(skeleton: Skeleton3D, slot: DollSlot) -> void:
 	skeleton.add_child(attachment)
 	attachment.bone_name = slot.bone
 	var piece := slot.piece.instantiate() as Node3D
-	piece.transform = slot.offset * piece.transform
+	var base := piece.transform
+	piece.transform = slot.offset * base
 	attachment.add_child(piece)
+	_pieces.push_back({piece = piece, slot = slot, base = base})
 
 
 func _apply_facing() -> void:
@@ -255,8 +279,32 @@ func _request_render() -> void:
 		_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
+## Everything about its skin but the slot offsets: when it's unchanged,
+## moving the pieces is enough.
+func _skin_signature() -> String:
+	if not skin:
+		return ""
+	var parts := PackedStringArray([str(skin.character.get_instance_id() if skin.character else 0),
+			str(skin.rig.get_instance_id() if skin.rig else 0), str(skin.mirrored), str(skin.hidden_meshes),
+			str(skin.recolored_meshes), str(skin.recolor_key)])
+	for slot in skin.slots:
+		parts.push_back("%s@%s" % [slot.piece.get_instance_id() if slot and slot.piece else 0, slot.bone if slot else &""])
+	return "|".join(parts)
+
+
+func _move_pieces() -> void:
+	for held in _pieces:
+		var piece: Node3D = held.piece
+		if is_instance_valid(piece):
+			piece.transform = (held.slot as DollSlot).offset * (held.base as Transform3D)
+	_request_render()
+
+
 func _on_skin_changed() -> void:
-	_needs_build = true
+	if not _needs_build and is_node_ready() and _skin_signature() == _built_signature:
+		_move_pieces()
+	else:
+		_needs_build = true
 
 
 func _disconnect_changed(resource: Resource) -> void:

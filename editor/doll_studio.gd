@@ -13,6 +13,7 @@ extends VBoxContainer
 
 const DOLL_SCENE := preload("res://addons/doll_studio/runtime/pixel_doll.tscn")
 const DollWorkbench := preload("res://addons/doll_studio/editor/doll_workbench.gd")
+const ResourceScan := preload("res://addons/doll_studio/editor/resource_scan.gd")
 ## Script classes the scan collects, by the .tres header's script_class.
 const SKIN_CLASS := "DollSkin"
 const PALETTE_CLASS := "DollPalette"
@@ -252,40 +253,13 @@ func _recall(key: String, default: Variant) -> Variant:
 ## keeping what each had picked when it's still there (else what was
 ## remembered).
 func _rescan() -> void:
-	_paths = {SKIN_CLASS: PackedStringArray(), PALETTE_CLASS: PackedStringArray(), STYLE_CLASS: PackedStringArray()}
-	_scan_dir(EditorInterface.get_resource_filesystem().get_filesystem())
+	_paths = ResourceScan.find(PackedStringArray([SKIN_CLASS, PALETTE_CLASS, STYLE_CLASS]))
 	_refill(_skin_picker, _paths[SKIN_CLASS], false, [_selected_path(_skin_picker), _recall("skin", "")])
 	_refill(_palette_picker, _paths[PALETTE_CLASS], true, [_selected_path(_palette_picker), _recall("palette", "")])
 	_refill(_style_picker, _paths[STYLE_CLASS], false, [_pending_style_path, _selected_path(_style_picker),
 			_recall("style", ""), ProjectSettings.get_setting(PixelDoll.STYLE_SETTING, ""), DEFAULT_STYLE_PATH])
 	_pending_style_path = ""
 	_rebuild_dolls()
-
-
-func _scan_dir(dir: EditorFileSystemDirectory) -> void:
-	if not dir:
-		return
-	for i in dir.get_file_count():
-		var path := dir.get_file_path(i)
-		if path.get_extension() == "tres":
-			var script_class := _read_script_class(path)
-			if _paths.has(script_class):
-				_paths[script_class].push_back(path)
-	for i in dir.get_subdir_count():
-		_scan_dir(dir.get_subdir(i))
-
-
-## The script_class a .tres declares in its header line, or "".
-func _read_script_class(path: String) -> String:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return ""
-	var header := file.get_line()
-	var start := header.find("script_class=\"")
-	if start == -1:
-		return ""
-	start += "script_class=\"".length()
-	return header.substr(start, header.find("\"", start) - start)
 
 
 ## Lists `paths` in `picker` and picks the first of `wanted` it has.

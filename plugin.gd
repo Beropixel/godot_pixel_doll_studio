@@ -1,16 +1,21 @@
 @tool
 extends EditorPlugin
 ## Doll Studio's editor side: the "Doll Studio" main screen next to 2D, 3D
-## and Script (see editor/doll_studio.gd), and the DollSkin/DollSlot
-## inspector extras (see editor/skin_inspector.gd). The runtime (PixelDoll and
+## and Script (see editor/doll_studio.gd), the DollSkin/DollSlot inspector
+## extras (see editor/skin_inspector.gd) and the workbench's pixel preview,
+## at the 3D editor's side while the workbench is open (see
+## editor/workbench_preview.gd). The runtime (PixelDoll and
 ## its resources) needs nothing registered here: its class_names are global.
 
 const DollStudio := preload("res://addons/doll_studio/editor/doll_studio.gd")
 const SkinInspector := preload("res://addons/doll_studio/editor/skin_inspector.gd")
+const WorkbenchPreview := preload("res://addons/doll_studio/editor/workbench_preview.gd")
+const DollWorkbench := preload("res://addons/doll_studio/editor/doll_workbench.gd")
 const STYLE_SETTING := PixelDoll.STYLE_SETTING
 
 var _studio: DollStudio
 var _skin_inspector: SkinInspector
+var _workbench_preview: WorkbenchPreview
 
 
 func _enter_tree() -> void:
@@ -22,9 +27,17 @@ func _enter_tree() -> void:
 	_studio.hide()
 	_skin_inspector = SkinInspector.new()
 	add_inspector_plugin(_skin_inspector)
+	_workbench_preview = WorkbenchPreview.new()
+	add_control_to_container(CONTAINER_SPATIAL_EDITOR_SIDE_RIGHT, _workbench_preview)
+	scene_changed.connect(_on_scene_changed)
+	_on_scene_changed(EditorInterface.get_edited_scene_root())
 
 
 func _exit_tree() -> void:
+	if _workbench_preview:
+		remove_control_from_container(CONTAINER_SPATIAL_EDITOR_SIDE_RIGHT, _workbench_preview)
+		_workbench_preview.queue_free()
+		_workbench_preview = null
 	if _skin_inspector:
 		remove_inspector_plugin(_skin_inspector)
 		_skin_inspector = null
@@ -63,3 +76,8 @@ func _register_settings() -> void:
 		"hint_string": "*.tres",
 	})
 	ProjectSettings.set_as_basic(STYLE_SETTING, true)
+
+
+func _on_scene_changed(scene_root: Node) -> void:
+	var is_workbench := scene_root != null and scene_root.scene_file_path == DollWorkbench.WORKBENCH_SCENE
+	_workbench_preview.follow(scene_root as Node3D if is_workbench else null)
