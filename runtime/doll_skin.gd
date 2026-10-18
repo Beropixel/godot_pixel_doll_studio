@@ -9,6 +9,8 @@ extends Resource
 @export var display_name: String = ""
 ## A scene with a Skeleton3D inside, e.g. an imported .glb.
 @export var character: PackedScene
+## The clips it plays, made for its character's skeleton.
+@export var rig: DollRig
 ## Mirrors the model, e.g. so the arm holding a shield faces the camera once
 ## the doll is turned (see DollStyle.turn_degrees).
 @export var mirrored: bool = false

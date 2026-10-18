@@ -6,8 +6,8 @@ extends Sprite2D
 ## (wide enough for a body lying down) and shown with a 1px outline
 ## (outline.gdshader). Its surfaces are flattened and lit in flat bands, its
 ## recolored texels painted in its palette (toon.gdshader), and parts in
-## front get inner lines (inner_lines.gdshader). It plays the clips of its
-## `animations` in steps, re-rendering only on a new pose (see
+## front get inner lines (inner_lines.gdshader). It plays its skin's clips
+## (see DollRig) in steps, re-rendering only on a new pose (see
 ## DollStyle.frames_per_second). A Sprite2D, so its owner shakes, flips and
 ## tints it like any sprite; an AnimationPlayer outside can start its clips
 ## through an animation track on Viewport/AnimationPlayer.
@@ -34,13 +34,6 @@ static var _materials: Dictionary[String, ShaderMaterial] = {}
 		skin = value
 		if is_node_ready():
 			_build()
-## The clips it can play, by library name ("" for the default library); the
-## libraries must match the skins' rig.
-@export var animations: Dictionary[StringName, AnimationLibrary] = {}:
-	set(value):
-		animations = value
-		if is_node_ready():
-			_apply_animations()
 ## Faces left instead of right: the render is mirrored, and so is the light,
 ## so it's still lit from where it faces.
 @export var flipped: bool = false:
@@ -72,7 +65,6 @@ var _step_time := 0.0
 func _ready() -> void:
 	if not style.changed.is_connected(_apply_style):
 		style.changed.connect(_apply_style)
-	_apply_animations()
 	_build()
 	_apply_facing()
 
@@ -90,18 +82,23 @@ func _process(delta: float) -> void:
 	_request_render()
 
 
-func _apply_animations() -> void:
-	for library_name in animation_player.get_animation_library_list():
-		animation_player.remove_animation_library(library_name)
-	for library_name in animations:
-		animation_player.add_animation_library(library_name, animations[library_name])
+## Shows `clip` (a name in its skin's rig) frozen at `time`, e.g. to scrub
+## through it; play it again with animation_player.play().
+func pose(clip: StringName, time: float) -> void:
+	if not animation_player.has_animation(clip):
+		return
+	animation_player.play(clip)
+	animation_player.seek(time, true)
+	animation_player.pause()
+	_request_render()
 
 
-## Swaps in the skin's character, with the pieces in its slots, keeping the
-## clip it was playing.
+## Swaps in the skin's character, with the pieces in its slots and the clips
+## of its rig, keeping the clip it was playing.
 func _build() -> void:
 	var clip := animation_player.current_animation
 	var position_in_clip := animation_player.current_animation_position if clip else 0.0
+	_apply_rig()
 	if _character:
 		_viewport.remove_child(_character)
 		_character.queue_free()
@@ -126,10 +123,18 @@ func _build() -> void:
 	animation_player.active = has_character
 	if has_character:
 		animation_player.clear_caches()
-	if clip and has_character:
+	if clip and has_character and animation_player.has_animation(clip):
 		animation_player.play(clip)
 		animation_player.seek(position_in_clip, true)
 	_apply_style()
+
+
+func _apply_rig() -> void:
+	for library_name in animation_player.get_animation_library_list():
+		animation_player.remove_animation_library(library_name)
+	if skin and skin.rig:
+		for library_name in skin.rig.animations:
+			animation_player.add_animation_library(library_name, skin.rig.animations[library_name])
 
 
 func _hold(skeleton: Skeleton3D, slot: DollSlot) -> void:
