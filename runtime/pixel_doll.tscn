@@ -1,0 +1,44 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://addons/doll_studio/runtime/pixel_doll.gd" id="1_script"]
+[ext_resource type="Shader" path="res://addons/doll_studio/runtime/shaders/outline.gdshader" id="2_outline"]
+[ext_resource type="Shader" path="res://addons/doll_studio/runtime/shaders/inner_lines.gdshader" id="3_lines"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_outline"]
+shader = ExtResource("2_outline")
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_doll"]
+resource_local_to_scene = true
+viewport_path = NodePath("Viewport")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lines"]
+render_priority = 0
+shader = ExtResource("3_lines")
+
+[sub_resource type="QuadMesh" id="QuadMesh_lines"]
+material = SubResource("ShaderMaterial_lines")
+size = Vector2(2, 2)
+
+[node name="PixelDoll" type="Sprite2D"]
+material = SubResource("ShaderMaterial_outline")
+texture = SubResource("ViewportTexture_doll")
+script = ExtResource("1_script")
+
+[node name="Viewport" type="SubViewport" parent="."]
+own_world_3d = true
+transparent_bg = true
+size = Vector2i(96, 64)
+render_target_update_mode = 1
+
+[node name="Camera3D" type="Camera3D" parent="Viewport"]
+projection = 1
+size = 3.4
+
+[node name="InnerLines" type="MeshInstance3D" parent="Viewport/Camera3D"]
+extra_cull_margin = 16384.0
+mesh = SubResource("QuadMesh_lines")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Viewport"]
+active = false
+root_node = NodePath("../Character")
+callback_mode_process = 2
