@@ -1,0 +1,10 @@
+# Godot
+.godot/
+*.translation
+
+# Written by a host project's plugin installer
+addons/doll_studio/.pinned_version
+
+# System files
+.DS_Store
+Thumbs.db

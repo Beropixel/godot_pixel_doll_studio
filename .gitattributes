@@ -1,0 +1,7 @@
+# Normalize line endings.
+* text=auto eol=lf
+
+# Keep only the addon in Asset Library downloads.
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/README.md export-ignore
