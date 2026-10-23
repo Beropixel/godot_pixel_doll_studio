@@ -23,6 +23,7 @@ var _viewport := SubViewport.new()
 var _view := SubViewportContainer.new()
 var _palette_picker := OptionButton.new()
 var _flip_check := CheckBox.new()
+var _direction_picker := OptionButton.new()
 var _zoom_spin := SpinBox.new()
 
 
@@ -59,6 +60,12 @@ func _ready() -> void:
 	_zoom_spin.suffix = "x"
 	_zoom_spin.value_changed.connect(_on_zoom_changed)
 	options.add_child(_zoom_spin)
+	for direction_name: String in PixelDoll.Direction.keys():
+		_direction_picker.add_item(direction_name.capitalize())
+	_direction_picker.select(int(_recall("workbench_direction", PixelDoll.Direction.RIGHT)))
+	_direction_picker.tooltip_text = "Where it looks (the model turns)."
+	_direction_picker.item_selected.connect(_on_direction_selected)
+	add_child(_direction_picker)
 	_palette_picker.tooltip_text = "The palette its recolored meshes take."
 	_palette_picker.item_selected.connect(_on_palette_selected)
 	add_child(_palette_picker)
@@ -93,6 +100,7 @@ func _layout() -> void:
 	var zoom := float(_zoom_spin.value)
 	_view.custom_minimum_size = DOLL_SIZE * zoom
 	_doll.flipped = _flip_check.button_pressed
+	_doll.direction = maxi(_direction_picker.selected, 0) as PixelDoll.Direction
 	_doll.scale = Vector2(-zoom if _doll.flipped else zoom, zoom)
 	_doll.position = DOLL_SIZE * zoom * 0.5
 
@@ -129,6 +137,11 @@ func _recall(key: String, default: Variant) -> Variant:
 
 func _on_flip_toggled(pressed: bool) -> void:
 	_remember("workbench_flip", pressed)
+	_layout()
+
+
+func _on_direction_selected(index: int) -> void:
+	_remember("workbench_direction", index)
 	_layout()
 
 

@@ -1,7 +1,8 @@
 @tool
 extends VBoxContainer
 ## The Doll Studio main screen: previews a DollSkin as a PixelDoll, in a
-## palette and a style, facing right, left or both, and plays or scrubs its
+## palette and a style, facing right, left or both (mirrored), looking one of
+## 8 directions or all of them (laid out where each looks), and plays or scrubs its
 ## rig's clips (Space plays or pauses, ← and → step a pose, Home goes back to
 ## the start); Workbench opens the skin in the 3D editor (see
 ## doll_workbench.gd). The style picked is edited in the side inspector and
@@ -25,6 +26,8 @@ const ONION_ALPHA := 0.35
 const DEFAULT_BACKGROUND := Color("#4f6b46")
 ## The facing picker's items: which way each shown doll faces (flipped).
 const FACINGS: Array[Array] = [[false], [true], [false, true]]
+## The direction picker's last item, after one per PixelDoll.Direction.
+const ALL_DIRECTIONS: int = PixelDoll.Direction.UP_RIGHT + 1
 ## Where the picks are remembered, in the editor's project metadata.
 const METADATA_SECTION := "doll_studio"
 
@@ -42,6 +45,7 @@ var _pending_style_path := ""
 var _skin_picker := OptionButton.new()
 var _palette_picker := OptionButton.new()
 var _facing_picker := OptionButton.new()
+var _direction_picker := OptionButton.new()
 var _clip_picker := OptionButton.new()
 var _style_picker := OptionButton.new()
 var _viewport := SubViewport.new()
@@ -121,6 +125,12 @@ func _build_ui() -> void:
 	for facing_name in ["Right", "Left", "Both"]:
 		_facing_picker.add_item(facing_name)
 	_facing_picker.select(2)
+	_facing_picker.tooltip_text = "Mirrors the render (flipped)."
+	_add_labeled(toolbar, "Direction", _direction_picker, _on_direction_selected)
+	for direction_name: String in PixelDoll.Direction.keys():
+		_direction_picker.add_item(direction_name.capitalize())
+	_direction_picker.add_item("All")
+	_direction_picker.tooltip_text = "Turns the model (direction)."
 	_add_labeled(toolbar, "Clip", _clip_picker, _on_clip_selected)
 	_add_labeled(toolbar, "Style", _style_picker, _on_style_selected)
 
@@ -234,6 +244,7 @@ func _make_icon_button(icon_name: StringName, tooltip: String, on_pressed: Calla
 ## the scan, see _rescan).
 func _restore_view() -> void:
 	_facing_picker.select(int(_recall("facing", 2)))
+	_direction_picker.select(int(_recall("direction", PixelDoll.Direction.RIGHT)))
 	_zoom_spin.set_value_no_signal(float(_recall("zoom", 4.0)))
 	_background_picker.color = _recall("background", DEFAULT_BACKGROUND)
 	_background.color = _background_picker.color
@@ -300,6 +311,14 @@ func _selected_clip() -> StringName:
 	return StringName(_clip_picker.get_item_text(_clip_picker.selected)) if _clip_picker.selected >= 0 else &""
 
 
+## The PixelDoll.Direction values picked: one, or all of them.
+func _selected_directions() -> Array[int]:
+	var picked := maxi(_direction_picker.selected, 0)
+	if picked == ALL_DIRECTIONS:
+		return Array(PixelDoll.Direction.values(), TYPE_INT, &"", null)
+	return [picked]
+
+
 ## Fills the clip picker from the skin's rig, keeping the clip shown (else
 ## the one remembered) when the rig has it.
 func _refill_clips(skin: DollSkin) -> void:
@@ -319,8 +338,8 @@ func _refill_clips(skin: DollSkin) -> void:
 				return
 
 
-## A doll (and its onion skin) per facing picked, in the skin, palette and
-## style picked.
+## A doll (and its onion skin) per facing and direction picked, in the skin,
+## palette and style picked.
 func _rebuild_dolls() -> void:
 	for doll in _dolls + _onions:
 		doll.queue_free()
@@ -338,10 +357,11 @@ func _rebuild_dolls() -> void:
 	if not skin:
 		return
 	for flipped: bool in FACINGS[maxi(_facing_picker.selected, 0)]:
-		var onion := _make_doll(skin, style, flipped)
-		onion.self_modulate.a = ONION_ALPHA
-		_onions.push_back(onion)
-		_dolls.push_back(_make_doll(skin, style, flipped))
+		for direction in _selected_directions():
+			var onion := _make_doll(skin, style, flipped, direction)
+			onion.self_modulate.a = ONION_ALPHA
+			_onions.push_back(onion)
+			_dolls.push_back(_make_doll(skin, style, flipped, direction))
 	_layout_dolls()
 	_update_onions()
 	if _playing:
@@ -350,13 +370,14 @@ func _rebuild_dolls() -> void:
 		_pose_at(_timeline.value)
 
 
-func _make_doll(skin: DollSkin, style: DollStyle, flipped: bool) -> PixelDoll:
+func _make_doll(skin: DollSkin, style: DollStyle, flipped: bool, direction: int) -> PixelDoll:
 	var doll: PixelDoll = DOLL_SCENE.instantiate()
 	if style:
 		doll.style = style
 	doll.skin = skin
 	doll.palette = _selected_resource(_palette_picker) as DollPalette
 	doll.flipped = flipped
+	doll.direction = direction as PixelDoll.Direction
 	_viewport.add_child(doll)
 	_viewport.move_child(_notice, -1)
 	return doll
@@ -385,15 +406,22 @@ func _update_notice(skin: DollSkin) -> void:
 		_notice.text = ""
 
 
-## Spreads the dolls across the preview, centered, at the zoom picked.
+## Spreads the facings across the preview, centered, at the zoom picked;
+## with all directions, each facing's dolls ring its center, each placed
+## where it looks on screen.
 func _layout_dolls() -> void:
 	var zoom := float(_zoom_spin.value)
 	var area := Vector2(_viewport.size)
-	for i in _dolls.size():
-		var spot := Vector2(area.x * (i + 1) / (_dolls.size() + 1), area.y * 0.5)
-		for doll: PixelDoll in [_dolls[i], _onions[i]]:
-			doll.scale = Vector2(-zoom if doll.flipped else zoom, zoom)
-			doll.position = spot.round()
+	var facings: Array = FACINGS[maxi(_facing_picker.selected, 0)]
+	var ringed := _selected_directions().size() > 1
+	var cell := minf(area.x / facings.size(), area.y) / 3.0
+	for doll: PixelDoll in _dolls + _onions:
+		var spot := Vector2(area.x * (facings.find(doll.flipped) + 1) / (facings.size() + 1), area.y * 0.5)
+		if ringed:
+			var looks := Vector2.from_angle(doll.direction * PI / 4.0)
+			spot += Vector2(-roundf(looks.x) if doll.flipped else roundf(looks.x), roundf(looks.y)) * cell
+		doll.scale = Vector2(-zoom if doll.flipped else zoom, zoom)
+		doll.position = spot.round()
 
 
 func _play_from(time: float) -> void:
@@ -469,6 +497,11 @@ func _on_palette_selected() -> void:
 
 func _on_facing_selected() -> void:
 	_remember("facing", _facing_picker.selected)
+	_rebuild_dolls()
+
+
+func _on_direction_selected() -> void:
+	_remember("direction", _direction_picker.selected)
 	_rebuild_dolls()
 
 

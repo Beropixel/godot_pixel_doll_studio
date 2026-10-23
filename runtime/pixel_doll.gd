@@ -12,7 +12,11 @@ extends Sprite2D
 ## tints it like any sprite; an AnimationPlayer outside can start its clips
 ## through an animation track on Viewport/AnimationPlayer. It rebuilds when
 ## its skin changes (see DollSkin), once it's visible; when only slot offsets
-## changed, it just moves the pieces.
+## changed, it just moves the pieces. It looks one of 8 ways on screen (see
+## direction), the model turned, not mirrored.
+
+## Where it looks on screen, clockwise from right; down is towards the camera.
+enum Direction { RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, LEFT, UP_LEFT, UP, UP_RIGHT }
 
 const TOON_SHADER := preload("res://addons/doll_studio/runtime/shaders/toon.gdshader")
 const DEFAULT_STYLE := preload("res://addons/doll_studio/runtime/default_style.tres")
@@ -49,6 +53,14 @@ static var _materials: Dictionary[String, ShaderMaterial] = {}
 		flipped = value
 		if is_node_ready():
 			_apply_facing()
+## Turns the model to look this way: unlike `flipped`, LEFT shows its other
+## side. The style's turn_degrees bends it towards the camera as much as it
+## looks sideways, so RIGHT and LEFT keep the style's 3/4 view; UP shows its
+## back.
+@export var direction := Direction.RIGHT:
+	set(value):
+		direction = value
+		_turn_character()
 ## The shades its skin's recolored texels take; without one they keep their
 ## own colors.
 @export var palette: DollPalette:
@@ -88,6 +100,11 @@ static func project_style() -> DollStyle:
 		if project_wide:
 			return project_wide
 	return DEFAULT_STYLE
+
+
+## The Direction closest to `vector`, e.g. a velocity on screen (+y down).
+static func direction_of(vector: Vector2) -> Direction:
+	return wrapi(roundi(vector.angle() / (PI / 4.0)), 0, 8) as Direction
 
 
 func _ready() -> void:
@@ -209,8 +226,7 @@ func _apply_facing() -> void:
 func _apply_style() -> void:
 	if not is_node_ready():
 		return
-	if _character:
-		_character.rotation = Vector3(0.0, deg_to_rad(90.0 - _style.turn_degrees), 0.0)
+	_turn_character()
 	var pitch := deg_to_rad(_style.pitch_degrees)
 	_camera.size = _style.camera_size
 	# A point dh above the feet shows dh * cos(pitch) higher on screen.
@@ -221,6 +237,18 @@ func _apply_style() -> void:
 	lines.set_shader_parameter(&"depth_threshold", _style.inner_line_threshold)
 	lines.set_shader_parameter(&"line_brightness", _style.inner_line_brightness)
 	_apply_materials()
+
+
+## Turns the character (built facing +Z, the camera) to look `direction`,
+## bent towards the camera by the style's turn_degrees times how much the
+## direction looks sideways.
+func _turn_character() -> void:
+	if not _character:
+		return
+	var heading: float = direction * 45.0
+	var bent := heading + _style.turn_degrees * cos(deg_to_rad(heading))
+	_character.rotation = Vector3(0.0, deg_to_rad(90.0 - bent), 0.0)
+	_request_render()
 
 
 func _apply_materials() -> void:
