@@ -67,6 +67,8 @@ func _ready() -> void:
 	_direction_picker.item_selected.connect(_on_direction_selected)
 	add_child(_direction_picker)
 	_palette_picker.tooltip_text = "The palette its recolored meshes take."
+	# Palette names, never translated.
+	_palette_picker.auto_translate_mode = AUTO_TRANSLATE_MODE_DISABLED
 	_palette_picker.item_selected.connect(_on_palette_selected)
 	add_child(_palette_picker)
 	EditorInterface.get_resource_filesystem().filesystem_changed.connect(_refill_palettes)
@@ -108,7 +110,7 @@ func _layout() -> void:
 func _refill_palettes() -> void:
 	var wanted := _selected_palette_path() if _palette_picker.item_count > 0 else String(_recall("workbench_palette", ""))
 	_palette_picker.clear()
-	_palette_picker.add_item("No Palette")
+	_palette_picker.add_item(tr("No Palette"))
 	_palette_picker.set_item_metadata(0, "")
 	for path in ResourceScan.find(PackedStringArray([PALETTE_CLASS]))[PALETTE_CLASS]:
 		_palette_picker.add_item(path.get_file().get_basename().capitalize())

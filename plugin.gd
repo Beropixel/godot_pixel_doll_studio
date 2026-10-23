@@ -4,7 +4,9 @@ extends EditorPlugin
 ## and Script (see editor/doll_studio.gd), the DollSkin/DollSlot inspector
 ## extras (see editor/skin_inspector.gd) and the workbench's pixel preview,
 ## at the 3D editor's side while the workbench is open (see
-## editor/workbench_preview.gd). The runtime (PixelDoll and
+## editor/workbench_preview.gd). Its UI is in English, translated by the .po
+## files in translations/ (added to the editor's own translation domain, so
+## they follow the editor's language). The runtime (PixelDoll and
 ## its resources) needs nothing registered here: its class_names are global.
 
 const DollStudio := preload("res://addons/doll_studio/editor/doll_studio.gd")
@@ -12,14 +14,19 @@ const SkinInspector := preload("res://addons/doll_studio/editor/skin_inspector.g
 const WorkbenchPreview := preload("res://addons/doll_studio/editor/workbench_preview.gd")
 const DollWorkbench := preload("res://addons/doll_studio/editor/doll_workbench.gd")
 const STYLE_SETTING := PixelDoll.STYLE_SETTING
+const TRANSLATIONS_DIR := "res://addons/doll_studio/translations/"
+## Where the editor looks up the text of its controls, the plugin's included.
+const EDITOR_DOMAIN := &"godot.editor"
 
 var _studio: DollStudio
 var _skin_inspector: SkinInspector
 var _workbench_preview: WorkbenchPreview
+var _translations: Array[Translation] = []
 
 
 func _enter_tree() -> void:
 	_register_settings()
+	_add_translations()
 	_studio = DollStudio.new()
 	_studio.name = "DollStudio"
 	_studio.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -44,6 +51,7 @@ func _exit_tree() -> void:
 	if _studio:
 		_studio.queue_free()
 		_studio = null
+	_remove_translations()
 
 
 func _has_main_screen() -> bool:
@@ -76,6 +84,27 @@ func _register_settings() -> void:
 		"hint_string": "*.tres",
 	})
 	ProjectSettings.set_as_basic(STYLE_SETTING, true)
+
+
+## Loads translations/*.po into the editor's domain, before the UI is built.
+func _add_translations() -> void:
+	var domain := TranslationServer.get_or_add_domain(EDITOR_DOMAIN)
+	for file in ResourceLoader.list_directory(TRANSLATIONS_DIR):
+		if file.get_extension() != "po":
+			continue
+		var translation := load(TRANSLATIONS_DIR + file) as Translation
+		if translation:
+			domain.add_translation(translation)
+			_translations.push_back(translation)
+		else:
+			push_error("Doll Studio couldn't load the translation %s" % file)
+
+
+func _remove_translations() -> void:
+	var domain := TranslationServer.get_or_add_domain(EDITOR_DOMAIN)
+	for translation in _translations:
+		domain.remove_translation(translation)
+	_translations.clear()
 
 
 func _on_scene_changed(scene_root: Node) -> void:

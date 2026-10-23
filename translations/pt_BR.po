@@ -1,0 +1,162 @@
+# Doll Studio editor UI.
+# English is the source language; add a language by copying doll_studio.pot
+# to <locale>.po (e.g. es.po) and filling in each msgstr.
+msgid ""
+msgstr ""
+"Project-Id-Version: Doll Studio\n"
+"Language: pt_BR\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8-bit\n"
+
+msgid "Skin"
+msgstr "Skin"
+
+msgid "Edit Skin"
+msgstr "Editar skin"
+
+msgid "Open the skin in the Inspector."
+msgstr "Abre o skin no Inspetor."
+
+msgid "Workbench"
+msgstr "Bancada"
+
+msgid "Fit the skin's pieces and make clips in the 3D editor."
+msgstr "Encaixe as peças do skin e crie clips no editor 3D."
+
+msgid "Palette"
+msgstr "Paleta"
+
+msgid "Mirrored"
+msgstr "Espelhado"
+
+msgid "Mirrors the render (flipped)."
+msgstr "Espelha o render (flipped)."
+
+msgid "Direction"
+msgstr "Direção"
+
+msgid "Right"
+msgstr "Direita"
+
+msgid "Down Right"
+msgstr "Baixo à direita"
+
+msgid "Down"
+msgstr "Baixo"
+
+msgid "Down Left"
+msgstr "Baixo à esquerda"
+
+msgid "Left"
+msgstr "Esquerda"
+
+msgid "Up Left"
+msgstr "Cima à esquerda"
+
+msgid "Up"
+msgstr "Cima"
+
+msgid "Up Right"
+msgstr "Cima à direita"
+
+msgctxt "directions"
+msgid "All"
+msgstr "Todas"
+
+msgid "Turns the model (direction)."
+msgstr "Gira o modelo (direction)."
+
+msgid "Clip"
+msgstr "Clip"
+
+msgid "Style"
+msgstr "Estilo"
+
+msgid "This is the addon's built-in style: it's read-only, so updating the addon can't undo your changes. Copy it into a project style to tune it; every doll without a style of its own will use that one."
+msgstr "Este é o estilo embutido do addon: ele é somente leitura, para que atualizar o addon não desfaça suas mudanças. Copie-o para um estilo do projeto para ajustá-lo; todo boneco sem estilo próprio vai usar esse."
+
+msgid "Create Project Style…"
+msgstr "Criar estilo do projeto…"
+
+msgid "Create Project Style"
+msgstr "Criar estilo do projeto"
+
+msgid "Play or pause the clip (Space)."
+msgstr "Toca ou pausa o clip (Espaço)."
+
+msgid "Previous pose (←)"
+msgstr "Pose anterior (←)"
+
+msgid "Next pose (→)"
+msgstr "Próxima pose (→)"
+
+msgid "Loop"
+msgstr "Repetir"
+
+msgid "Onion Skin"
+msgstr "Papel cebola"
+
+msgid "While paused, show the pose a step before, see-through."
+msgstr "Quando pausado, mostra a pose anterior, translúcida."
+
+msgid "Zoom"
+msgstr "Zoom"
+
+msgid "Background color."
+msgstr "Cor de fundo."
+
+msgid "None"
+msgstr "Nenhum"
+
+msgid "No DollSkin in the project yet. In the FileSystem dock, right-click a folder › Create New › Resource… › DollSkin, then set its character."
+msgstr "Ainda não há nenhum DollSkin no projeto. No painel Sistema de Arquivos, clique com o botão direito numa pasta › Criar Novo › Recurso… › DollSkin e defina o personagem dele."
+
+msgid "This skin has no character. Click Edit Skin and set one: a scene with a Skeleton3D, such as an imported .glb."
+msgstr "Este skin não tem personagem. Clique em Editar skin e defina um: uma cena com um Skeleton3D, como um .glb importado."
+
+msgid "This skin has no clips to play. Click Edit Skin and give it a rig: a DollRig holding animation libraries for its skeleton."
+msgstr "Este skin não tem clips para tocar. Clique em Editar skin e dê a ele um rig: um DollRig com bibliotecas de animação para o esqueleto dele."
+
+msgid "Open in Workbench"
+msgstr "Abrir na bancada"
+
+msgid "Fit the pieces and make clips in the 3D editor."
+msgstr "Encaixe as peças e crie clips no editor 3D."
+
+msgid "Character"
+msgstr "Personagem"
+
+#, c-format
+msgid "Slot %d (%s)"
+msgstr "Slot %d (%s)"
+
+msgctxt "meshes"
+msgid "Not found"
+msgstr "Não encontradas"
+
+#, c-format
+msgid "%s (missing)"
+msgstr "%s (ausente)"
+
+msgid "Save Skin and Clips"
+msgstr "Salvar skin e clips"
+
+msgid "Pixel Preview"
+msgstr "Prévia em pixels"
+
+msgid "Flip"
+msgstr "Espelhar"
+
+msgid "Face left."
+msgstr "Vira para a esquerda (espelhado)."
+
+msgid "Where it looks (the model turns)."
+msgstr "Para onde olha (o modelo gira)."
+
+msgid "The palette its recolored meshes take."
+msgstr "A paleta que as malhas recoloridas recebem."
+
+msgid "No Palette"
+msgstr "Sem paleta"

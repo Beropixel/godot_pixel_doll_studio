@@ -35,6 +35,12 @@ PixelDoll ◄── skin + palette + style (+ flipped)
 
 > No weleven isso já está feito, e `addons/doll_studio` está na regra de warnings-como-erros do `project.godot`.
 
+### Idioma
+
+A interface do plugin segue o idioma do editor (**Editor Settings › Interface › Editor › Localization › Editor Language**): inglês (o idioma de origem) ou português do Brasil. Os nomes de recursos, clips, ossos e malhas nunca são traduzidos.
+
+Para adicionar outro idioma, copie `addons/doll_studio/translations/doll_studio.pot` para `<locale>.po` (ex.: `es.po`) na mesma pasta e preencha cada `msgstr`. O plugin carrega todos os `.po` dessa pasta quando é ativado. Depois de mudar um `.po`, desative e reative o plugin. Duas mensagens têm contexto (`msgctxt`) para não serem trocadas pela tradução do próprio editor, que tem a mesma frase.
+
 ---
 
 ## 3. A aba Doll Studio

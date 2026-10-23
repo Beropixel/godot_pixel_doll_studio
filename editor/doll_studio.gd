@@ -126,10 +126,14 @@ func _build_ui() -> void:
 	_add_labeled(toolbar, "Direction", _direction_picker, _on_direction_selected)
 	for direction_name: String in PixelDoll.Direction.keys():
 		_direction_picker.add_item(direction_name.capitalize())
-	_direction_picker.add_item("All")
+	# With a context: the editor's own "All" would win otherwise.
+	_direction_picker.add_item(tr("All", &"directions"))
 	_direction_picker.tooltip_text = "Turns the model (direction)."
 	_add_labeled(toolbar, "Clip", _clip_picker, _on_clip_selected)
 	_add_labeled(toolbar, "Style", _style_picker, _on_style_selected)
+	# Resource and clip names, never translated.
+	for names: OptionButton in [_skin_picker, _palette_picker, _clip_picker, _style_picker]:
+		names.auto_translate_mode = AUTO_TRANSLATE_MODE_DISABLED
 
 	var split := HSplitContainer.new()
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -274,7 +278,7 @@ func _rescan() -> void:
 func _refill(picker: OptionButton, paths: PackedStringArray, with_none: bool, wanted: Array) -> void:
 	picker.clear()
 	if with_none:
-		picker.add_item("None")
+		picker.add_item(tr("None"))
 		picker.set_item_metadata(0, "")
 	for path in paths:
 		picker.add_item(path.get_file().get_basename().capitalize())

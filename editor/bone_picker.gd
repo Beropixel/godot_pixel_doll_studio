@@ -4,7 +4,8 @@ extends EditorProperty
 ## (its character's Skeleton3D). A bone the skeleton lacks stays listed,
 ## marked missing.
 
-const MISSING_SUFFIX := " (missing)"
+## A bone the skeleton lacks, translated.
+const MISSING_FORMAT := "%s (missing)"
 
 ## Bone names by character scene path, read once per editor session.
 static var _bones_by_character: Dictionary[String, PackedStringArray] = {}
@@ -29,6 +30,8 @@ static func bones_of(character: PackedScene) -> PackedStringArray:
 
 func _init() -> void:
 	_picker.clip_text = true
+	# Bone names, never translated.
+	_picker.auto_translate_mode = AUTO_TRANSLATE_MODE_DISABLED
 	_picker.item_selected.connect(_on_item_selected)
 	add_child(_picker)
 	add_focusable(_picker)
@@ -40,14 +43,19 @@ func _update_property() -> void:
 	var bones := bones_of(skin.character) if skin else PackedStringArray()
 	_picker.clear()
 	for bone in bones:
-		_picker.add_item(bone)
+		_add_bone(bone, bone)
 	if current != "" and not bones.has(current):
-		_picker.add_item(current + MISSING_SUFFIX)
+		_add_bone(current, tr(MISSING_FORMAT) % current)
 	for i in _picker.item_count:
-		if _picker.get_item_text(i).trim_suffix(MISSING_SUFFIX) == current:
+		if _picker.get_item_metadata(i) == current:
 			_picker.select(i)
 			return
 	_picker.select(-1)
+
+
+func _add_bone(bone: String, text: String) -> void:
+	_picker.add_item(text)
+	_picker.set_item_metadata(_picker.item_count - 1, bone)
 
 
 ## The skin whose slot this is: the object the Inspector edits, or its
@@ -60,4 +68,4 @@ func _inspected_skin() -> DollSkin:
 
 
 func _on_item_selected(index: int) -> void:
-	emit_changed(get_edited_property(), StringName(_picker.get_item_text(index).trim_suffix(MISSING_SUFFIX)))
+	emit_changed(get_edited_property(), StringName(_picker.get_item_metadata(index)))

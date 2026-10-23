@@ -1,0 +1,160 @@
+# Doll Studio editor UI.
+# English is the source language; add a language by copying doll_studio.pot
+# to <locale>.po (e.g. es.po) and filling in each msgstr.
+msgid ""
+msgstr ""
+"Project-Id-Version: Doll Studio\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8-bit\n"
+
+msgid "Skin"
+msgstr ""
+
+msgid "Edit Skin"
+msgstr ""
+
+msgid "Open the skin in the Inspector."
+msgstr ""
+
+msgid "Workbench"
+msgstr ""
+
+msgid "Fit the skin's pieces and make clips in the 3D editor."
+msgstr ""
+
+msgid "Palette"
+msgstr ""
+
+msgid "Mirrored"
+msgstr ""
+
+msgid "Mirrors the render (flipped)."
+msgstr ""
+
+msgid "Direction"
+msgstr ""
+
+msgid "Right"
+msgstr ""
+
+msgid "Down Right"
+msgstr ""
+
+msgid "Down"
+msgstr ""
+
+msgid "Down Left"
+msgstr ""
+
+msgid "Left"
+msgstr ""
+
+msgid "Up Left"
+msgstr ""
+
+msgid "Up"
+msgstr ""
+
+msgid "Up Right"
+msgstr ""
+
+msgctxt "directions"
+msgid "All"
+msgstr ""
+
+msgid "Turns the model (direction)."
+msgstr ""
+
+msgid "Clip"
+msgstr ""
+
+msgid "Style"
+msgstr ""
+
+msgid "This is the addon's built-in style: it's read-only, so updating the addon can't undo your changes. Copy it into a project style to tune it; every doll without a style of its own will use that one."
+msgstr ""
+
+msgid "Create Project Style…"
+msgstr ""
+
+msgid "Create Project Style"
+msgstr ""
+
+msgid "Play or pause the clip (Space)."
+msgstr ""
+
+msgid "Previous pose (←)"
+msgstr ""
+
+msgid "Next pose (→)"
+msgstr ""
+
+msgid "Loop"
+msgstr ""
+
+msgid "Onion Skin"
+msgstr ""
+
+msgid "While paused, show the pose a step before, see-through."
+msgstr ""
+
+msgid "Zoom"
+msgstr ""
+
+msgid "Background color."
+msgstr ""
+
+msgid "None"
+msgstr ""
+
+msgid "No DollSkin in the project yet. In the FileSystem dock, right-click a folder › Create New › Resource… › DollSkin, then set its character."
+msgstr ""
+
+msgid "This skin has no character. Click Edit Skin and set one: a scene with a Skeleton3D, such as an imported .glb."
+msgstr ""
+
+msgid "This skin has no clips to play. Click Edit Skin and give it a rig: a DollRig holding animation libraries for its skeleton."
+msgstr ""
+
+msgid "Open in Workbench"
+msgstr ""
+
+msgid "Fit the pieces and make clips in the 3D editor."
+msgstr ""
+
+msgid "Character"
+msgstr ""
+
+#, c-format
+msgid "Slot %d (%s)"
+msgstr ""
+
+msgctxt "meshes"
+msgid "Not found"
+msgstr ""
+
+#, c-format
+msgid "%s (missing)"
+msgstr ""
+
+msgid "Save Skin and Clips"
+msgstr ""
+
+msgid "Pixel Preview"
+msgstr ""
+
+msgid "Flip"
+msgstr ""
+
+msgid "Face left."
+msgstr ""
+
+msgid "Where it looks (the model turns)."
+msgstr ""
+
+msgid "The palette its recolored meshes take."
+msgstr ""
+
+msgid "No Palette"
+msgstr ""
