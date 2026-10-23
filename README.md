@@ -1,5 +1,7 @@
 # Doll Studio
 
+![Three skins in two team palettes](docs/images/hero.png)
+
 A Godot 4 plugin that draws rigged 3D characters as live pixel art.
 
 A `PixelDoll` node (a `Sprite2D`) renders a skinned 3D model in its own 96×64 viewport with flat light bands, palette recoloring, a 1 px outline, inner lines and stepped animation, so it reads like a hand-drawn sprite while keeping every clip, pose and piece of equipment of the 3D rig.
@@ -27,7 +29,7 @@ and take `godot_doll_studio-<version>/addons/doll_studio/` from it.
 
 ## Guide
 
-[addons/doll_studio/TUTORIAL.md](addons/doll_studio/TUTORIAL.md) (Brazilian Portuguese) walks through skins, slots, palettes, styles, the workbench, clips, directions and using dolls in a game.
+The [tutorial](docs/tutorial.md) walks through skins, slots, palettes, styles, the workbench, clips, directions and using dolls in a game, with screenshots.
 
 ## Translations
 
