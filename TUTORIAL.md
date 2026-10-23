@@ -47,7 +47,7 @@ PixelDoll ◄── skin + palette + style (+ flipped)
 | **Edit Skin** | Abre o skin no Inspector do editor |
 | **Workbench** | Abre o skin na bancada 3D (seção 6) |
 | **Palette** | Paleta aplicada às malhas recoloridas (ou nenhuma) |
-| **Facing** | Right, Left ou Both (lado a lado): espelha o render (`flipped`) |
+| **Mirrored** | Liga/desliga o espelhamento do render (`flipped`) |
 | **Direction** | Uma das 8 direções (o modelo gira de verdade) ou **All**: as 8 em volta de um centro, cada boneco posicionado para onde olha (seção 8.4) |
 | **Clip** | Clips do rig do skin (`Death_A`, `doll/defend`, …) |
 | **Style** | Estilo usado no preview; editável no painel da direita |
@@ -62,7 +62,7 @@ PixelDoll ◄── skin + palette + style (+ flipped)
 | ← / → | Pose anterior / próxima (no ritmo do `frames_per_second` do estilo) |
 | Home | Volta ao início |
 
-Tudo o que foi escolhido (skin, paleta, facing, direção, clip, estilo, zoom, fundo, loop, onion) é lembrado por projeto.
+Tudo o que foi escolhido (skin, paleta, espelhamento, direção, clip, estilo, zoom, fundo, loop, onion) é lembrado por projeto.
 
 Se o preview estiver vazio, ele diz o que falta: nenhum skin no projeto, skin sem personagem ou skin sem clips.
 

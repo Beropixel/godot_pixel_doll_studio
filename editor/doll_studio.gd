@@ -1,8 +1,8 @@
 @tool
 extends VBoxContainer
 ## The Doll Studio main screen: previews a DollSkin as a PixelDoll, in a
-## palette and a style, facing right, left or both (mirrored), looking one of
-## 8 directions or all of them (laid out where each looks), and plays or scrubs its
+## palette and a style, mirrored or not, looking one of 8 directions or all
+## of them (laid out where each looks), and plays or scrubs its
 ## rig's clips (Space plays or pauses, ← and → step a pose, Home goes back to
 ## the start); Workbench opens the skin in the 3D editor (see
 ## doll_workbench.gd). The style picked is edited in the side inspector and
@@ -24,8 +24,6 @@ const DEFAULT_STYLE_PATH := "res://addons/doll_studio/runtime/default_style.tres
 ## How see-through the onion skin's previous pose is.
 const ONION_ALPHA := 0.35
 const DEFAULT_BACKGROUND := Color("#4f6b46")
-## The facing picker's items: which way each shown doll faces (flipped).
-const FACINGS: Array[Array] = [[false], [true], [false, true]]
 ## The direction picker's last item, after one per PixelDoll.Direction.
 const ALL_DIRECTIONS: int = PixelDoll.Direction.UP_RIGHT + 1
 ## Where the picks are remembered, in the editor's project metadata.
@@ -44,7 +42,7 @@ var _pending_style_path := ""
 
 var _skin_picker := OptionButton.new()
 var _palette_picker := OptionButton.new()
-var _facing_picker := OptionButton.new()
+var _mirror_check := CheckBox.new()
 var _direction_picker := OptionButton.new()
 var _clip_picker := OptionButton.new()
 var _style_picker := OptionButton.new()
@@ -121,11 +119,10 @@ func _build_ui() -> void:
 	workbench.pressed.connect(_on_workbench_pressed)
 	toolbar.add_child(workbench)
 	_add_labeled(toolbar, "Palette", _palette_picker, _on_palette_selected)
-	_add_labeled(toolbar, "Facing", _facing_picker, _on_facing_selected)
-	for facing_name in ["Right", "Left", "Both"]:
-		_facing_picker.add_item(facing_name)
-	_facing_picker.select(2)
-	_facing_picker.tooltip_text = "Mirrors the render (flipped)."
+	_mirror_check.text = "Mirrored"
+	_mirror_check.tooltip_text = "Mirrors the render (flipped)."
+	_mirror_check.toggled.connect(_on_mirror_toggled)
+	toolbar.add_child(_mirror_check)
 	_add_labeled(toolbar, "Direction", _direction_picker, _on_direction_selected)
 	for direction_name: String in PixelDoll.Direction.keys():
 		_direction_picker.add_item(direction_name.capitalize())
@@ -243,7 +240,7 @@ func _make_icon_button(icon_name: StringName, tooltip: String, on_pressed: Calla
 ## Puts the remembered view settings back (the pickers' picks come back with
 ## the scan, see _rescan).
 func _restore_view() -> void:
-	_facing_picker.select(int(_recall("facing", 2)))
+	_mirror_check.set_pressed_no_signal(bool(_recall("mirrored", false)))
 	_direction_picker.select(int(_recall("direction", PixelDoll.Direction.RIGHT)))
 	_zoom_spin.set_value_no_signal(float(_recall("zoom", 4.0)))
 	_background_picker.color = _recall("background", DEFAULT_BACKGROUND)
@@ -338,8 +335,8 @@ func _refill_clips(skin: DollSkin) -> void:
 				return
 
 
-## A doll (and its onion skin) per facing and direction picked, in the skin,
-## palette and style picked.
+## A doll (and its onion skin) per direction picked, in the skin, palette
+## and style picked.
 func _rebuild_dolls() -> void:
 	for doll in _dolls + _onions:
 		doll.queue_free()
@@ -356,12 +353,11 @@ func _rebuild_dolls() -> void:
 	_update_notice(skin)
 	if not skin:
 		return
-	for flipped: bool in FACINGS[maxi(_facing_picker.selected, 0)]:
-		for direction in _selected_directions():
-			var onion := _make_doll(skin, style, flipped, direction)
-			onion.self_modulate.a = ONION_ALPHA
-			_onions.push_back(onion)
-			_dolls.push_back(_make_doll(skin, style, flipped, direction))
+	for direction in _selected_directions():
+		var onion := _make_doll(skin, style, direction)
+		onion.self_modulate.a = ONION_ALPHA
+		_onions.push_back(onion)
+		_dolls.push_back(_make_doll(skin, style, direction))
 	_layout_dolls()
 	_update_onions()
 	if _playing:
@@ -370,13 +366,13 @@ func _rebuild_dolls() -> void:
 		_pose_at(_timeline.value)
 
 
-func _make_doll(skin: DollSkin, style: DollStyle, flipped: bool, direction: int) -> PixelDoll:
+func _make_doll(skin: DollSkin, style: DollStyle, direction: int) -> PixelDoll:
 	var doll: PixelDoll = DOLL_SCENE.instantiate()
 	if style:
 		doll.style = style
 	doll.skin = skin
 	doll.palette = _selected_resource(_palette_picker) as DollPalette
-	doll.flipped = flipped
+	doll.flipped = _mirror_check.button_pressed
 	doll.direction = direction as PixelDoll.Direction
 	_viewport.add_child(doll)
 	_viewport.move_child(_notice, -1)
@@ -406,17 +402,15 @@ func _update_notice(skin: DollSkin) -> void:
 		_notice.text = ""
 
 
-## Spreads the facings across the preview, centered, at the zoom picked;
-## with all directions, each facing's dolls ring its center, each placed
-## where it looks on screen.
+## Centers the doll in the preview at the zoom picked; with all directions,
+## the dolls ring the center, each placed where it looks on screen.
 func _layout_dolls() -> void:
 	var zoom := float(_zoom_spin.value)
 	var area := Vector2(_viewport.size)
-	var facings: Array = FACINGS[maxi(_facing_picker.selected, 0)]
 	var ringed := _selected_directions().size() > 1
-	var cell := minf(area.x / facings.size(), area.y) / 3.0
+	var cell := minf(area.x, area.y) / 3.0
 	for doll: PixelDoll in _dolls + _onions:
-		var spot := Vector2(area.x * (facings.find(doll.flipped) + 1) / (facings.size() + 1), area.y * 0.5)
+		var spot := area * 0.5
 		if ringed:
 			var looks := Vector2.from_angle(doll.direction * PI / 4.0)
 			spot += Vector2(-roundf(looks.x) if doll.flipped else roundf(looks.x), roundf(looks.y)) * cell
@@ -495,9 +489,11 @@ func _on_palette_selected() -> void:
 		doll.palette = _selected_resource(_palette_picker) as DollPalette
 
 
-func _on_facing_selected() -> void:
-	_remember("facing", _facing_picker.selected)
-	_rebuild_dolls()
+func _on_mirror_toggled(pressed: bool) -> void:
+	_remember("mirrored", pressed)
+	for doll in _dolls + _onions:
+		doll.flipped = pressed
+	_layout_dolls()
 
 
 func _on_direction_selected() -> void:
