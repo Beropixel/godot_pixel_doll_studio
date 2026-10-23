@@ -1,6 +1,6 @@
 @tool
 extends Node3D
-## Doll Studio's workbench (doll_workbench.tscn): builds a DollSkin in the 3D
+## Pixel Doll Studio's workbench (doll_workbench.tscn): builds a DollSkin in the 3D
 ## editor to fit its pieces and make its clips with Godot's own tools. Move
 ## or rotate a piece (Character/…/Slot*/Piece*) with the 3D gizmos and its
 ## DollSlot.offset follows; pose the skeleton and key it in the Animation
@@ -10,7 +10,7 @@ extends Node3D
 ## into the scene file. It rebuilds when the skin is changed elsewhere (e.g.
 ## in the Inspector). Open it on a skin with open().
 
-const WORKBENCH_SCENE := "res://addons/doll_studio/editor/doll_workbench.tscn"
+const WORKBENCH_SCENE := "res://addons/pixel_doll_studio/editor/doll_workbench.tscn"
 const CHARACTER_NODE := &"Character"
 
 ## The skin being worked on; picked here or by open(), never saved with the

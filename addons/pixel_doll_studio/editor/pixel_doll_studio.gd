@@ -1,6 +1,6 @@
 @tool
 extends VBoxContainer
-## The Doll Studio main screen: previews a DollSkin as a PixelDoll, in a
+## The Pixel Doll Studio main screen: previews a DollSkin as a PixelDoll, in a
 ## palette and a style, mirrored or not, looking one of 8 directions or all
 ## of them (laid out where each looks), and plays or scrubs its
 ## rig's clips (Space plays or pauses, ← and → step a pose, Home goes back to
@@ -12,22 +12,22 @@ extends VBoxContainer
 ## changes, and the preview follows edits to the skin shown. What's picked
 ## is remembered per project.
 
-const DOLL_SCENE := preload("res://addons/doll_studio/runtime/pixel_doll.tscn")
-const DollWorkbench := preload("res://addons/doll_studio/editor/doll_workbench.gd")
-const ResourceScan := preload("res://addons/doll_studio/editor/resource_scan.gd")
+const DOLL_SCENE := preload("res://addons/pixel_doll_studio/runtime/pixel_doll.tscn")
+const DollWorkbench := preload("res://addons/pixel_doll_studio/editor/doll_workbench.gd")
+const ResourceScan := preload("res://addons/pixel_doll_studio/editor/resource_scan.gd")
 ## Script classes the scan collects, by the .tres header's script_class.
 const SKIN_CLASS := "DollSkin"
 const PALETTE_CLASS := "DollPalette"
 const STYLE_CLASS := "DollStyle"
-const ADDON_DIR := "res://addons/doll_studio/"
-const DEFAULT_STYLE_PATH := "res://addons/doll_studio/runtime/default_style.tres"
+const ADDON_DIR := "res://addons/pixel_doll_studio/"
+const DEFAULT_STYLE_PATH := "res://addons/pixel_doll_studio/runtime/default_style.tres"
 ## How see-through the onion skin's previous pose is.
 const ONION_ALPHA := 0.35
 const DEFAULT_BACKGROUND := Color("#4f6b46")
 ## The direction picker's last item, after one per PixelDoll.Direction.
 const ALL_DIRECTIONS: int = PixelDoll.Direction.UP_RIGHT + 1
 ## Where the picks are remembered, in the editor's project metadata.
-const METADATA_SECTION := "doll_studio"
+const METADATA_SECTION := "pixel_doll_studio"
 
 ## .tres paths found by the scan, by script class.
 var _paths: Dictionary[String, PackedStringArray] = {}
@@ -474,7 +474,7 @@ func _create_project_style(path: String) -> void:
 	var copy: DollStyle = source.duplicate() if source else DollStyle.new()
 	var error := ResourceSaver.save(copy, path)
 	if error != OK:
-		push_error("Doll Studio couldn't save %s: %s" % [path, error_string(error)])
+		push_error("Pixel Doll Studio couldn't save %s: %s" % [path, error_string(error)])
 		return
 	ProjectSettings.set_setting(PixelDoll.STYLE_SETTING, path)
 	ProjectSettings.save()

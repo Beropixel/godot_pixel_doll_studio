@@ -6,14 +6,14 @@ extends VBoxContainer
 ## workbench skeleton's pose at the style's frames_per_second, so a pose or a
 ## clip in the Animation panel shows as pixel art right away, keyed or not.
 
-const DOLL_SCENE := preload("res://addons/doll_studio/runtime/pixel_doll.tscn")
-const ResourceScan := preload("res://addons/doll_studio/editor/resource_scan.gd")
+const DOLL_SCENE := preload("res://addons/pixel_doll_studio/runtime/pixel_doll.tscn")
+const ResourceScan := preload("res://addons/pixel_doll_studio/editor/resource_scan.gd")
 const PALETTE_CLASS := "DollPalette"
 ## A doll's render, in its own pixels (see pixel_doll.tscn).
 const DOLL_SIZE := Vector2(96, 64)
 const BACKGROUND := Color("#4f6b46")
 ## Where its picks are remembered, in the editor's project metadata.
-const METADATA_SECTION := "doll_studio"
+const METADATA_SECTION := "pixel_doll_studio"
 
 var _workbench: Node3D
 var _doll: PixelDoll

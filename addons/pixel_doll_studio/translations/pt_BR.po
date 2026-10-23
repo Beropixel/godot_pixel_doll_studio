@@ -1,9 +1,9 @@
-# Doll Studio editor UI.
-# English is the source language; add a language by copying doll_studio.pot
+# Pixel Doll Studio editor UI.
+# English is the source language; add a language by copying pixel_doll_studio.pot
 # to <locale>.po (e.g. es.po) and filling in each msgstr.
 msgid ""
 msgstr ""
-"Project-Id-Version: Doll Studio\n"
+"Project-Id-Version: Pixel Doll Studio\n"
 "Language: pt_BR\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "MIME-Version: 1.0\n"

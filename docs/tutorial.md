@@ -1,8 +1,8 @@
-# Doll Studio tutorial
+# Pixel Doll Studio tutorial
 
 ![Three skins in two team palettes, facing each other](images/hero.png)
 
-Doll Studio draws rigged 3D characters as live pixel art. A `PixelDoll` node (a `Sprite2D`) renders a skinned model in its own 96×64 viewport. The model is shaded in flat light bands, recolored with a palette, outlined at 1 px and given inner lines, and its clips play in steps like a hand-drawn sprite. The rig stays 3D, though: every clip, pose and piece of equipment of the 3D character keeps working.
+Pixel Doll Studio draws rigged 3D characters as live pixel art. A `PixelDoll` node (a `Sprite2D`) renders a skinned model in its own 96×64 viewport. The model is shaded in flat light bands, recolored with a palette, outlined at 1 px and given inner lines, and its clips play in steps like a hand-drawn sprite. The rig stays 3D, though: every clip, pose and piece of equipment of the 3D character keeps working.
 
 This tutorial covers the whole workflow: building a skin, fitting pieces to bones, recoloring with palettes, tuning the style, making clips and using dolls in a game.
 
@@ -33,23 +33,23 @@ PixelDoll ◄── skin + palette + style (+ flipped, direction)
 
 ## 2. Installing
 
-1. Copy `addons/doll_studio/` into your project's `addons/` folder.
-2. Enable **Doll Studio** in **Project › Project Settings › Plugins**.
-3. A **Doll Studio** main screen appears next to 2D, 3D and Script.
+1. Copy `addons/pixel_doll_studio/` into your project's `addons/` folder.
+2. Enable **Pixel Doll Studio** in **Project › Project Settings › Plugins**.
+3. A **Pixel Doll Studio** main screen appears next to 2D, 3D and Script.
 
-Doll Studio needs Godot 4.7 or later.
+Pixel Doll Studio needs Godot 4.7 or later.
 
 ### Language
 
 The plugin's UI follows the editor's language (**Editor Settings › Interface › Editor › Localization › Editor Language**). It ships in English and Brazilian Portuguese. Resource, clip, bone and mesh names are never translated.
 
-To add a language, copy `addons/doll_studio/translations/doll_studio.pot` to `<locale>.po` (e.g. `es.po`) in the same folder and fill in each `msgstr`. The plugin loads every `.po` there when it's enabled; disable and enable it again after editing one. Two messages carry a context (`msgctxt`) so the editor's own translation of the same words doesn't replace them.
+To add a language, copy `addons/pixel_doll_studio/translations/pixel_doll_studio.pot` to `<locale>.po` (e.g. `es.po`) in the same folder and fill in each `msgstr`. The plugin loads every `.po` there when it's enabled; disable and enable it again after editing one. Two messages carry a context (`msgctxt`) so the editor's own translation of the same words doesn't replace them.
 
 ---
 
-## 3. The Doll Studio screen
+## 3. The Pixel Doll Studio screen
 
-![The Doll Studio screen: toolbar, pixel preview, style inspector and timeline](images/studio_tab.png)
+![The Pixel Doll Studio screen: toolbar, pixel preview, style inspector and timeline](images/studio_tab.png)
 
 **Toolbar**
 
@@ -123,7 +123,7 @@ Both lists are **checklists**, grouped by where each mesh comes from (Character,
 
 The **Recolor Key** is the color the palette replaces. Each texel close to it takes the palette's light, mid or dark shade, picked by the texel's own brightness. Pick the model's accent color, e.g. the red of the knight's cape and shield.
 
-Every change to a skin shows at once on the Doll Studio screen, in the thumbnail and on any `PixelDoll` open in the editor.
+Every change to a skin shows at once on the Pixel Doll Studio screen, in the thumbnail and on any `PixelDoll` open in the editor.
 
 ---
 
@@ -133,7 +133,7 @@ Every change to a skin shows at once on the Doll Studio screen, in the thumbnail
 
 1. **Create New › Resource… › DollPalette**.
 2. Set **Light**, **Mid** and **Dark**, lightest to darkest.
-3. Pick it in the Doll Studio screen's **Palette** to check it.
+3. Pick it in the Pixel Doll Studio screen's **Palette** to check it.
 
 Only palettes saved as `.tres` files show in the screen. Dolls sharing a palette share their materials.
 
@@ -143,7 +143,7 @@ Only palettes saved as `.tres` files show in the screen. Dolls sharing a palette
 
 The workbench builds the skin in the **3D editor**, so you can use Godot's own tools on it: the move/rotate gizmos and the Animation panel.
 
-**To open it:** click **Workbench** in the Doll Studio screen, or **Open in Workbench** in the skin's Inspector. The editor switches to 3D with `doll_workbench.tscn` open.
+**To open it:** click **Workbench** in the Pixel Doll Studio screen, or **Open in Workbench** in the skin's Inspector. The editor switches to 3D with `doll_workbench.tscn` open.
 
 ![The workbench: the shield selected with the 3D gizmo, and the Pixel Preview on the right](images/workbench.png)
 
@@ -193,9 +193,9 @@ A `DollStyle` sets how **every** doll without a style of its own is drawn: tunin
 
 The addon's own style is **read-only**, so updating the addon can't undo your changes. To tune it:
 
-1. In the Doll Studio screen, pick the addon's style under **Style**.
+1. In the Pixel Doll Studio screen, pick the addon's style under **Style**.
 2. Click **Create Project Style…** and save the copy (e.g. `doll_style.tres`).
-3. The copy becomes the project's style (**Project Settings › Doll Studio › Default Style**) and is picked right away.
+3. The copy becomes the project's style (**Project Settings › Pixel Doll Studio › Default Style**) and is picked right away.
 
 The order a doll looks in: its own `PixelDoll.style`, then the project's style, then the addon's.
 
@@ -224,7 +224,7 @@ Clips play in steps at **Frames Per Second**, re-rendering only on a new pose:
 
 ![Six steps of a death clip](images/stepped_clip.png)
 
-Edit the style in the Doll Studio screen's side panel with a clip playing to see each change at once.
+Edit the style in the Pixel Doll Studio screen's side panel with a clip playing to see each change at once.
 
 ---
 
@@ -232,7 +232,7 @@ Edit the style in the Doll Studio screen's side panel with a clip playing to see
 
 ### 8.1 In a scene
 
-Instance `res://addons/doll_studio/runtime/pixel_doll.tscn`. Don't use `PixelDoll.new()`: the node needs the scene's `Viewport`, camera and `AnimationPlayer`. In the Inspector, set **Skin**, **Palette**, **Flipped**, **Direction** and, optionally, **Style**.
+Instance `res://addons/pixel_doll_studio/runtime/pixel_doll.tscn`. Don't use `PixelDoll.new()`: the node needs the scene's `Viewport`, camera and `AnimationPlayer`. In the Inspector, set **Skin**, **Palette**, **Flipped**, **Direction** and, optionally, **Style**.
 
 ### 8.2 From code
 
@@ -272,9 +272,9 @@ func _physics_process(_delta: float) -> void:
 		doll.direction = PixelDoll.direction_of(velocity)  # the closest direction (+y is down)
 ```
 
-In the Doll Studio screen, **Direction › All** shows all 8 around the center, each doll placed where it looks:
+In the Pixel Doll Studio screen, **Direction › All** shows all 8 around the center, each doll placed where it looks:
 
-![The Doll Studio screen showing all 8 directions](images/studio_all_directions.png)
+![The Pixel Doll Studio screen showing all 8 directions](images/studio_all_directions.png)
 
 **`flipped` or `direction = LEFT`?**
 
@@ -307,5 +307,5 @@ The light stays fixed on screen for every direction: the same side lights every 
 | A bone shows as `(missing)` | The slot's bone isn't in the character's skeleton |
 | The palette doesn't apply | The mesh isn't in **Recolored Meshes**, or the **Recolor Key** is far from the texture's actual color |
 | Keyframes aren't saved | The clip is in an imported library (`.glb`): move it into a `.tres` one |
-| A piece is on the wrong side in game | The workbench doesn't mirror: check **Mirrored** in the Doll Studio screen |
+| A piece is on the wrong side in game | The workbench doesn't mirror: check **Mirrored** in the Pixel Doll Studio screen |
 | A weapon's blade or a shield faces the wrong way in clips | Rotate the piece 180° around its handle on the workbench (its offset is in the bone's space, so the fix holds in every clip) |

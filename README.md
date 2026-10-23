@@ -1,4 +1,4 @@
-# Doll Studio
+# Pixel Doll Studio
 
 ![Three skins in two team palettes](docs/images/hero.png)
 
@@ -11,21 +11,21 @@ A `PixelDoll` node (a `Sprite2D`) renders a skinned 3D model in its own 96×64 v
 - **Palettes** (`DollPalette`): three shades that replace a skin's key color, e.g. team colors.
 - **Styles** (`DollStyle`): camera, light bands, tints, inner lines and poses per second, shared by every doll.
 - **8 directions**: the model turns to look any of 8 ways on screen; `flipped` mirrors it.
-- **Editor**: a *Doll Studio* main screen to preview skins, clips, palettes and styles; a 3D workbench to fit pieces with the native gizmos and key clips in the Animation panel, with a live pixel preview; a skin inspector with a bone picker and mesh checklists. English and Brazilian Portuguese UI.
+- **Editor**: a *Pixel Doll Studio* main screen to preview skins, clips, palettes and styles; a 3D workbench to fit pieces with the native gizmos and key clips in the Animation panel, with a live pixel preview; a skin inspector with a bone picker and mesh checklists. English and Brazilian Portuguese UI.
 
 Requires Godot 4.7 or later.
 
 ## Install
 
-Copy `addons/doll_studio/` into your project's `addons/` folder, then enable **Doll Studio** in **Project › Project Settings › Plugins**.
+Copy `addons/pixel_doll_studio/` into your project's `addons/` folder, then enable **Pixel Doll Studio** in **Project › Project Settings › Plugins**.
 
 To pin a version from another project, download the tag's archive:
 
 ```
-https://github.com/Beropixel/godot_doll_studio/archive/refs/tags/<version>.zip
+https://github.com/Beropixel/godot_pixel_doll_studio/archive/refs/tags/<version>.zip
 ```
 
-and take `godot_doll_studio-<version>/addons/doll_studio/` from it.
+and take `godot_pixel_doll_studio-<version>/addons/pixel_doll_studio/` from it.
 
 ## Guide
 
@@ -33,8 +33,8 @@ The [tutorial](docs/tutorial.md) walks through skins, slots, palettes, styles, t
 
 ## Translations
 
-The editor UI is written in English and follows the editor's language. Translations live in `addons/doll_studio/translations/`: copy `doll_studio.pot` to `<locale>.po` and fill in each `msgstr`.
+The editor UI is written in English and follows the editor's language. Translations live in `addons/pixel_doll_studio/translations/`: copy `pixel_doll_studio.pot` to `<locale>.po` and fill in each `msgstr`.
 
 ## Releases
 
-Versions follow `addons/doll_studio/plugin.cfg`; each release is a tag with that version, without a `v` prefix (e.g. `0.1.0`).
+Versions follow `addons/pixel_doll_studio/plugin.cfg`; each release is a tag with that version, without a `v` prefix (e.g. `0.1.0`).

@@ -18,11 +18,11 @@ extends Sprite2D
 ## Where it looks on screen, clockwise from right; down is towards the camera.
 enum Direction { RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, LEFT, UP_LEFT, UP, UP_RIGHT }
 
-const TOON_SHADER := preload("res://addons/doll_studio/runtime/shaders/toon.gdshader")
-const DEFAULT_STYLE := preload("res://addons/doll_studio/runtime/default_style.tres")
+const TOON_SHADER := preload("res://addons/pixel_doll_studio/runtime/shaders/toon.gdshader")
+const DEFAULT_STYLE := preload("res://addons/pixel_doll_studio/runtime/default_style.tres")
 ## Project setting: the .tres of the style dolls without one use (see
 ## project_style()).
-const STYLE_SETTING := "doll_studio/default_style"
+const STYLE_SETTING := "pixel_doll_studio/default_style"
 ## The skin's character, where its AnimationPlayer's root_node points.
 const CHARACTER_NODE := &"Character"
 ## How far the camera stands back from what it looks at.
@@ -91,7 +91,7 @@ var _needs_build := false
 @onready var _inner_lines: MeshInstance3D = $Viewport/Camera3D/InnerLines
 
 
-## The style for dolls given none: the .tres named by the doll_studio/
+## The style for dolls given none: the .tres named by the pixel_doll_studio/
 ## default_style project setting, else the addon's default_style.tres.
 static func project_style() -> DollStyle:
 	var path: String = ProjectSettings.get_setting(STYLE_SETTING, "")
